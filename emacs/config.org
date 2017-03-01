@@ -1,0 +1,287 @@
+* Compile file
+#+BEGIN_SRC emacs-lisp
+(defun dmanchon/compile-config ()
+  (interactive)
+  (org-babel-load-file (concat emacs-directory "config.org"))
+  (byte-recompile-directory emacs-directory 0)
+)
+#+END_SRC
+
+* Package managment
+#+BEGIN_SRC emacs-lisp
+;; Bootstrap use-package
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+;; Default is to have elpa provide the package
+(setq use-package-always-ensure t)
+(setq use-package-verbose t)
+;; If running as daemon, just load shite
+(if (daemonp)
+  (setq use-package-always-demand t))
+
+(use-package better-defaults)
+#+END_SRC
+
+#+RESULTS:
+
+* PGP and authorization
+#+BEGIN_SRC emacs-lisp
+(setq user-full-name "Daniel Manchon"
+      user-mail-address "dmanchon@gmail.com")
+
+;; Use only authinfo.gpg for password storage
+(use-package auth-password-store
+  :init
+  (auth-pass-enable))
+;; Make sure it's the only mechanism
+(setq auth-sources '(password-store))
+(setq auth-source-gpg-encrypt-to (list user-mail-address))
+#+END_SRC
+
+#+RESULTS:
+| dmanchon@gmail.com |
+
+* Theme and fonts
+#+BEGIN_SRC emacs-lisp
+(when (window-system)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1))
+
+(set-face-attribute 'default nil
+                    :family "Source Code Pro"
+                    :height 160
+                    :weight 'normal
+                    :width 'normal)
+
+;;(load-theme 'leuven t)
+(use-package moe-theme)
+(require 'moe-theme)
+(moe-light)
+#+END_SRC
+
+
+#+RESULTS:
+
+* Paths
+#+BEGIN_SRC emacs-lisp
+(use-package exec-path-from-shell)
+(when (memq window-system '(mac ns))
+  (exec-path-from-shell-initialize))
+
+(setq shell-file-name "/bin/zsh")
+#+END_SRC
+
+#+RESULTS:
+: /bin/zsh
+
+* Org mode
+#+BEGIN_SRC emacs-lisp
+
+#+END_SRC
+
+* Latex
+* JS/HTML/CSS/Typescript
+#+BEGIN_SRC emacs-lisp
+(use-package company)
+(use-package typescript-mode)
+(require 'typescript-mode)
+
+(use-package tide)
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  ;; company is an optional dependency. You have to
+  ;; install it separately via package-install
+  ;; `M-x package-install [ret] company`
+  (company-mode +1))
+
+;; aligns annotation to the right hand side
+(setq company-tooltip-align-annotations t)
+
+;; formats the buffer before saving
+(add-hook 'before-save-hook 'tide-format-before-save)
+
+(add-hook 'typescript-mode-hook #'setup-tide-mode)
+#+END_SRC
+
+#+RESULTS:
+| setup-tide-mode |
+
+* Org babel mode
+#+BEGIN_SRC emacs-lisp
+(require 'ob-python)
+(require 'ob-sh)
+(require 'ob-emacs-lisp)
+#+END_SRC
+
+* Helm
+#+BEGIN_SRC emacs-lisp 
+(use-package helm)
+(use-package helm-projectile)
+(require 'helm-config)
+(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
+(global-set-key (kbd "C-x b") 'helm-buffers-list)
+(global-set-key (kbd "C-x C-r") 'helm-for-files)
+(global-set-key (kbd "M-y") 'helm-show-kill-ring)
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
+(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB work in terminal
+(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
+(setq helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
+      helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
+      helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
+      helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
+      helm-ff-file-name-history-use-recentf t
+      helm-echo-input-in-header-line t)
+(require 'helm-projectile)
+(helm-projectile-on)
+
+(use-package helm-ag)
+(require 'helm-ag)
+(helm-mode 1)
+#+END_SRC
+
+#+RESULTS:
+=t
+==t
+==t
+==t
+==t
+=  
+* Git
+#+BEGIN_SRC emacs-lisp
+(use-package magit)
+(require 'magit)
+(setq magit-refresh-status-buffer nil)
+(global-set-key [f2] 'magit-status)
+#+END_SRC
+
+#+RESULTS:
+: magit-status
+
+* Clojure
+#+BEGIN_SRC emacs-lisp
+(require 'ob-clojure)
+(use-package slime)
+(require 'slime)
+
+(setq org-babel-clojure-backend 'cider)
+(use-package cider)
+(require 'cider)
+
+(use-package clojure-mode)
+(require 'clojure-mode)
+
+(use-package paredit)
+(require 'paredit)
+
+(use-package rainbow-delimiters)
+(require 'rainbow-delimiters)
+(add-hook 'clojure-mode-hook 'rainbow-delimiters-mode)
+(add-hook 'clojure-mode-hook 'paredit-mode)
+#+END_SRC
+
+#+RESULTS:
+| rainbow-delimiters-mode | paredit-mode | clojure--check-wrong-major-mode |
+
+* Python
+#+BEGIN_SRC emacs-lisp
+(use-package elpy)
+(elpy-enable)
+(use-package flycheck)
+(when (require 'flycheck nil t)
+  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+  (add-hook 'elpy-mode-hook 'flycheck-mode))
+(use-package pungi)
+(require 'pungi)
+(add-hook #'python-mode-hook
+          '(lambda ()
+             (pungi:setup-jedi)))
+(defun elpy-goto-definition-or-rgrep ()
+  "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
+    (interactive)
+    (ring-insert find-tag-marker-ring (point-marker))
+    (condition-case nil (elpy-goto-definition)
+        (error (elpy-rgrep-symbol
+                   (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+(define-key elpy-mode-map [f5] 'elpy-goto-definition-or-rgrep)
+
+#+END_SRC
+
+#+RESULTS:
+: elpy-goto-definition-or-rgrep
+
+* Project
+#+BEGIN_SRC emacs-lisp
+(use-package projectile)
+(require 'projectile)
+(projectile-mode)
+(setq projectile-switch-project-action 'projectile-dired)
+#+END_SRC
+
+#+RESULTS:
+: projectile-dired
+
+* Navigation
+#+BEGIN_SRC emacs-lisp
+(use-package undo-tree)
+(require 'undo-tree)
+(global-undo-tree-mode)
+
+;;(use-package neotree)
+;;(require 'neotree)
+;;(global-set-key [f3] 'neotree-toggle)
+(global-set-key [f4] 'eshell)
+
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+
+(add-hook 'prog-mode-hook (lambda () (electric-pair-mode)))
+(show-paren-mode)	; Automatically highlight parenthesis pairs
+(setq show-paren-delay 0) ; show the paren match immediately
+
+(global-hl-line-mode)
+
+(use-package git-gutter+
+  :diminish
+  :defer t
+  :config
+  (global-git-gutter+-mode)
+)
+
+(use-package indent-guide
+  :defer t
+  :diminish
+  :config
+  (add-hook 'prog-mode-hook (lambda () (indent-guide-mode)))
+)
+(indent-guide-global-mode)
+
+
+(defalias 'yes-or-no-p 'y-or-n-p)
+(setq confirm-kill-emacs 'y-or-n-p)
+
+(global-set-key (kbd "C-+") 'text-scale-increase)
+(global-set-key (kbd "C--") 'text-scale-decrease)
+
+(setq org-src-fontify-natively t)
+
+(use-package docker
+  :defer t
+  :diminish
+)
+(use-package dockerfile-mode
+  :defer t
+)
+#+END_SRC
+
+#+RESULTS:
+| [cl-struct-package-desc dockerfile-mode (20170221 1317) Major mode for editing Docker's Dockerfiles nil single melpa nil nil nil] |
+
