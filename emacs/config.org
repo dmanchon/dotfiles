@@ -5,7 +5,12 @@
   (org-babel-load-file (concat emacs-directory "config.org"))
   (byte-recompile-directory emacs-directory 0)
 )
+(setq gc-cons-threshold 100000000)
+
 #+END_SRC
+
+#+RESULTS:
+: 100000000
 
 * Package managment
 #+BEGIN_SRC emacs-lisp
@@ -26,6 +31,18 @@
 
 #+RESULTS:
 
+* Paths
+#+BEGIN_SRC emacs-lisp
+(use-package exec-path-from-shell)
+(when (memq window-system '(mac ns))
+  (exec-path-from-shell-initialize))
+
+(setq shell-file-name "/bin/zsh")
+#+END_SRC
+
+#+RESULTS:
+: /bin/zsh
+
 * PGP and authorization
 #+BEGIN_SRC emacs-lisp
 (setq user-full-name "Daniel Manchon"
@@ -38,16 +55,19 @@
 ;; Make sure it's the only mechanism
 (setq auth-sources '(password-store))
 (setq auth-source-gpg-encrypt-to (list user-mail-address))
+(setq epg-gpg-program "gpg2")
+(setenv "GPG_AGENT_INFO" nil)
 #+END_SRC
 
 #+RESULTS:
-| dmanchon@gmail.com |
+: gpg2
 
 * Theme and fonts
 #+BEGIN_SRC emacs-lisp
 (when (window-system)
   (tool-bar-mode -1)
   (scroll-bar-mode -1))
+(menu-bar-mode t)
 
 (set-face-attribute 'default nil
                     :family "Source Code Pro"
@@ -59,22 +79,25 @@
 (use-package moe-theme)
 (require 'moe-theme)
 (moe-light)
+
+(defun no-trailing-whitespace ()
+  (setq show-trailing-whitespace nil))
+
+(add-hook 'minibuffer-setup-hook
+          'no-trailing-whitespace)
+(add-hook 'eww-mode-hook
+          'no-trailing-whitespace)
+(add-hook 'ielm-mode-hook
+          'no-trailing-whitespace)
+(add-hook 'gdb-mode-hook
+          'no-trailing-whitespace)
+(add-hook 'help-mode-hook
+          'no-trailing-whitespace)
 #+END_SRC
 
 
 #+RESULTS:
-
-* Paths
-#+BEGIN_SRC emacs-lisp
-(use-package exec-path-from-shell)
-(when (memq window-system '(mac ns))
-  (exec-path-from-shell-initialize))
-
-(setq shell-file-name "/bin/zsh")
-#+END_SRC
-
-#+RESULTS:
-: /bin/zsh
+| no-trailing-whitespace |
 
 * Org mode
 #+BEGIN_SRC emacs-lisp
@@ -115,10 +138,13 @@
 
 * Org babel mode
 #+BEGIN_SRC emacs-lisp
-(require 'ob-python)
-(require 'ob-sh)
-(require 'ob-emacs-lisp)
+  (require 'ob-python)
+  (require 'ob-sh)
+  (require 'ob-emacs-lisp)
 #+END_SRC
+
+#+RESULTS:
+: ob-emacs-lisp
 
 * Helm
 #+BEGIN_SRC emacs-lisp 
@@ -194,15 +220,19 @@
 #+BEGIN_SRC emacs-lisp
 (use-package elpy)
 (elpy-enable)
+
 (use-package flycheck)
 (when (require 'flycheck nil t)
   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (add-hook 'elpy-mode-hook 'flycheck-mode))
+
 (use-package pungi)
 (require 'pungi)
+
 (add-hook #'python-mode-hook
           '(lambda ()
              (pungi:setup-jedi)))
+
 (defun elpy-goto-definition-or-rgrep ()
   "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
     (interactive)
@@ -210,6 +240,7 @@
     (condition-case nil (elpy-goto-definition)
         (error (elpy-rgrep-symbol
                    (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+
 (define-key elpy-mode-map [f5] 'elpy-goto-definition-or-rgrep)
 
 #+END_SRC
@@ -219,14 +250,23 @@
 
 * Project
 #+BEGIN_SRC emacs-lisp
+(global-company-mode)
+(global-set-key (kbd "TAB") #'company-indent-or-complete-common)
 (use-package projectile)
 (require 'projectile)
 (projectile-mode)
 (setq projectile-switch-project-action 'projectile-dired)
+
+(defun dmanchon/switch-project-hook ()
+  "Perform some action after switching Projectile projects."
+  (message (projectile-project-root)))
+
+(global-linum-mode t)
+(add-hook 'projectile-after-switch-project-hook #'dmanchon/switch-project-hook)
 #+END_SRC
 
 #+RESULTS:
-: projectile-dired
+| dmanchon/switch-project-hook |
 
 * Navigation
 #+BEGIN_SRC emacs-lisp
@@ -241,29 +281,13 @@
 
 (require 'recentf)
 (recentf-mode 1)
-(setq recentf-max-menu-items 25)
+(setq recentf-max-menu-items 50)
 
 (add-hook 'prog-mode-hook (lambda () (electric-pair-mode)))
 (show-paren-mode)	; Automatically highlight parenthesis pairs
 (setq show-paren-delay 0) ; show the paren match immediately
 
 (global-hl-line-mode)
-
-(use-package git-gutter+
-  :diminish
-  :defer t
-  :config
-  (global-git-gutter+-mode)
-)
-
-(use-package indent-guide
-  :defer t
-  :diminish
-  :config
-  (add-hook 'prog-mode-hook (lambda () (indent-guide-mode)))
-)
-(indent-guide-global-mode)
-
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (setq confirm-kill-emacs 'y-or-n-p)
@@ -283,5 +307,5 @@
 #+END_SRC
 
 #+RESULTS:
-| [cl-struct-package-desc dockerfile-mode (20170221 1317) Major mode for editing Docker's Dockerfiles nil single melpa nil nil nil] |
+: t
 
