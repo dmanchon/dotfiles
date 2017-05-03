@@ -5,7 +5,7 @@
   (org-babel-load-file (concat emacs-directory "config.org"))
   (byte-recompile-directory emacs-directory 0)
 )
-(setq gc-cons-threshold 100000000)
+(setq gc-cons-threshold 150000000)
 
 #+END_SRC
 
