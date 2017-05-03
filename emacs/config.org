@@ -297,13 +297,13 @@
 
 (setq org-src-fontify-natively t)
 
-(use-package docker
-  :defer t
-  :diminish
-)
-(use-package dockerfile-mode
-  :defer t
-)
+;(use-package docker
+;  :defer t
+;  :diminish
+;)
+;(use-package dockerfile-mode
+;  :defer t
+;)
 #+END_SRC
 
 #+RESULTS:
