@@ -169,6 +169,7 @@
 #+END_SRC
 #+RESULTS:
 : file:///Users/danielmanchon/Desktop/reveal.js
+
 * Ivy
 #+BEGIN_SRC emacs-lisp
   (use-package ivy :ensure t
