@@ -419,15 +419,15 @@
 
 * Services
 #+BEGIN_SRC emacs-lisp
-;    (use-package prodigy)
+(use-package prodigy :defer t :ensure t)
 #+END_SRC
 
 #+RESULTS:
+
 * Nix
 #+BEGIN_SRC emacs-lisp
 (use-package nix-mode
    :defer t :ensure t)
-
 #+END_SRC
 
 #+RESULTS:
