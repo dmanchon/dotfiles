@@ -2,10 +2,11 @@
 #+BEGIN_SRC emacs-lisp
 (defun dmanchon/compile-config ()
   (interactive)
-  (org-babel-load-file (concat emacs-directory "config.org"))
-  (byte-recompile-directory emacs-directory 0)
+  (org-babel-load-file "~/.emacs.d/config.el")
+  (byte-recompile-directory emacs-directory "." 0)
 )
-(setq gc-cons-threshold 100000000)
+
+(setq gc-cons-threshold 50000000)
 
 #+END_SRC
 
@@ -26,19 +27,19 @@
 (if (daemonp)
   (setq use-package-always-demand t))
 
-(use-package better-defaults)
+(use-package better-defaults :defer t :ensure t)
 #+END_SRC
 
 #+RESULTS:
 
 * Paths
 #+BEGIN_SRC emacs-lisp
-(use-package exec-path-from-shell)
+(use-package exec-path-from-shell :ensure t :defer t)
 (when (memq window-system '(mac ns))
   (exec-path-from-shell-initialize))
 
 (setq shell-file-name "/bin/zsh")
-(use-package multi-term)
+(use-package multi-term :defer t :ensure t)
 (setq multi-term-program "/bin/zsh")
 
 ;; store all backup and autosave files in the tmp dir
@@ -49,7 +50,7 @@
 #+END_SRC
 
 #+RESULTS:
-| .* | /var/folders/91/pd4h8msx17s6mvpsywdm4_m00000gn/T/ | t |
+| .* | /var/folders/sp/my_8jlzs395g1txr9s0c0m800000gn/T/ | t |
 
 * PGP and authorization
 #+BEGIN_SRC emacs-lisp
@@ -58,6 +59,8 @@
 
 ;; Use only authinfo.gpg for password storage
 (use-package auth-password-store
+  :ensure t
+  :defer t
   :init
   (auth-pass-enable))
 ;; Make sure it's the only mechanism
@@ -79,31 +82,30 @@
 (menu-bar-mode t)
 
 (set-face-attribute 'default nil
-                    :family "Source Code Pro"
-                    :height 150
-                    :weight 'light
-                    :width 'normal)
+		    :family "Source Code Pro"
+		    :height 150
+		    :weight 'normal
+		    :width 'normal)
 
 
-(use-package moe-theme)
-;(use-package plan9-theme)
-(require 'moe-theme)
+(use-package moe-theme :demand t)
 (moe-light)
-;(load-theme 'dracula t)
+;(load-theme 'leuven)
+
 
 (defun no-trailing-whitespace ()
   (setq show-trailing-whitespace nil))
 
 (add-hook 'minibuffer-setup-hook
-          'no-trailing-whitespace)
+	  'no-trailing-whitespace)
 (add-hook 'eww-mode-hook
-          'no-trailing-whitespace)
+	  'no-trailing-whitespace)
 (add-hook 'ielm-mode-hook
-          'no-trailing-whitespace)
+	  'no-trailing-whitespace)
 (add-hook 'gdb-mode-hook
-          'no-trailing-whitespace)
+	  'no-trailing-whitespace)
 (add-hook 'help-mode-hook
-          'no-trailing-whitespace)
+	  'no-trailing-whitespace)
 #+END_SRC
 
 
@@ -112,7 +114,7 @@
 
 * Org mode
 #+BEGIN_SRC emacs-lisp
-
+(setq org-src-fontify-natively t)
 #+END_SRC
 
 * Latex
@@ -121,8 +123,8 @@
   :ensure t
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
+	 ("\\.md\\'" . markdown-mode)
+	 ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "pandoc"))
 #+END_SRC
 
@@ -130,11 +132,14 @@
 
 * JS/HTML/CSS/Typescript
 #+BEGIN_SRC emacs-lisp
-(use-package company)
-(use-package typescript-mode)
-(require 'typescript-mode)
+(use-package groovy-mode :defer t :ensure t)
+(add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
 
-(use-package tide)
+
+(use-package company :defer t :ensure t)
+(use-package typescript-mode :defer t :ensure t)
+
+(use-package tide :defer t :ensure t)
 (defun setup-tide-mode ()
   (interactive)
   (tide-setup)
@@ -164,105 +169,106 @@
   (require 'ob-python)
   (require 'ob-sh)
   (require 'ob-emacs-lisp)
-  (require 'ox-reveal)
-  (setq org-reveal-root "file:///Users/danielmanchon/Desktop/reveal.js")
 #+END_SRC
 #+RESULTS:
-: file:///Users/danielmanchon/Desktop/reveal.js
+: ob-emacs-lisp
 
 * Ivy
 #+BEGIN_SRC emacs-lisp
-  (use-package ivy :ensure t
-    :diminish ivy-mode
-    :init (setq projectile-completion-system 'ivy)
-    ;:bind
-    ;(:map ivy-mode-map ("C-'" . ivy-avy))
-    :config
-    (ivy-mode 1)
-    (setq ivy-use-virtual-buffers t)
-    (setq ivy-height 10)
-    (setq ivy-initial-inputs-alist nil)
-    (setq ivy-count-format "%d/%d ")
-    (setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
-    (setq ivy-extra-directories '("./")) ; default value: ("../" "./")
-    (setq ivy-wrap t)
-    (setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
-                                  (counsel-ag . ivy--regex-plus)
-                                  (counsel-grep-or-swiper . ivy--regex-plus)
-                                  (t . ivy--regex-fuzzy))))
+      (use-package ivy :ensure t :defer t
+	:diminish ivy-mode
+	:init (setq projectile-completion-system 'ivy)
+	:bind
+	(:map ivy-mode-map ("C-'" . ivy-avy))
+	:config
+	(ivy-mode 1)
+	(setq ivy-use-virtual-buffers t)
+	(setq ivy-height 10)
+	(setq ivy-initial-inputs-alist nil)
+	(setq ivy-count-format "%d/%d ")
+	(setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
+	(setq ivy-extra-directories '("./")) ; default value: ("../" "./")
+	(setq ivy-wrap t)
+	(setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
+				      (counsel-ag . ivy--regex-plus)
+				      (counsel-grep-or-swiper . ivy--regex-plus)
+				      (t . ivy--regex-plus))))
 
-  (use-package counsel-projectile :ensure t
-    :bind* (("C-c p p" . counsel-projectile))
-    :init
-    (setq counsel-projectile-drop-to-switch-project-binding "C-c s p")
-    (counsel-projectile-on))
+      (use-package counsel-projectile :ensure t :defer t
+	:bind* (("C-c p p" . counsel-projectile))
+	:init
+	(setq counsel-projectile-drop-to-switch-project-binding "C-c s p")
+	(counsel-projectile-on))
 
-  (use-package counsel :ensure t
-    :bind*
-    (("M-x" . counsel-M-x)
-     ("C-c d d" . counsel-descbinds)
-     ("C-c s s" . counsel-ag)
-     ("C-c s d" . counsel-ag-projectile)
-     ("C-x C-f" . counsel-find-file)
-     ("C-x r" . counsel-recentf)
-     ("C-c g g" . counsel-git)
-     ("C-c g G" . counsel-git-grep)
-     ("C-x l" . counsel-locate)
-     ("C-c g s" . counsel-grep-or-swiper)
-     ("M-y" . counsel-yank-pop)
-     ("C-c C-r" . ivy-resume)
-     ("C-c i m" . counsel-imenu)
-     ("C-c i M" . ivy-imenu-anywhere)
-     ("C-c d s" . describe-symbol)
-     :map ivy-minibuffer-map
-     ("M-y" . ivy-next-line-and-call))
+      (use-package counsel :ensure t :defer t
+	:bind*
+	(("M-x" . counsel-M-x)
+	 ("C-s" . swiper)
+	 ("C-c d d" . counsel-descbinds)
+	 ("C-c s s" . counsel-ag)
+	 ("C-c s d" . counsel-ag-projectile)
+	 ("C-x C-f" . counsel-find-file)
+	 ("C-x r" . counsel-recentf)
+	 ("C-c g g" . counsel-git)
+	 ("C-c g G" . counsel-git-grep)
+	 ("C-x l" . counsel-locate)
+	 ("C-c g s" . counsel-grep-or-swiper)
+	 ("M-y" . counsel-yank-pop)
+	 ("C-c C-r" . ivy-resume)
+	 ("C-c i m" . counsel-imenu)
+	 ("C-c i M" . ivy-imenu-anywhere)
+	 ("C-c d s" . describe-symbol)
+	 :map ivy-minibuffer-map
+	 ("M-y" . ivy-next-line-and-call))
 
-    :config
-    (defun reloading (cmd)
-      (lambda (x)
-        (funcall cmd x)
-        (ivy--reset-state ivy-last)))
-    (defun given-file (cmd prompt) ; needs lexical-binding
-      (lambda (source)
-        (let ((target
-               (let ((enable-recursive-minibuffers t))
-                 (read-file-name
-                  (format "%s %s to:" prompt source)))))
-          (funcall cmd source target 1))))
-    (defun confirm-delete-file (x)
-      (dired-delete-file x 'confirm-each-subdirectory))
+	:config
+	(defun reloading (cmd)
+	  (lambda (x)
+	    (funcall cmd x)
+	    (ivy--reset-state ivy-last)))
+	(defun given-file (cmd prompt) ; needs lexical-binding
+	  (lambda (source)
+	    (let ((target
+		   (let ((enable-recursive-minibuffers t))
+		     (read-file-name
+		      (format "%s %s to:" prompt source)))))
+	      (funcall cmd source target 1))))
+	(defun confirm-delete-file (x)
+	  (dired-delete-file x 'confirm-each-subdirectory))
 
-    (ivy-add-actions
-     'counsel-find-file
-     `(("c" ,(given-file #'copy-file "Copy") "copy")
-       ("d" ,(reloading #'confirm-delete-file) "delete")
-       ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
-    (ivy-add-actions
-     'counsel-projectile-find-file
-     `(("c" ,(given-file #'copy-file "Copy") "copy")
-       ("d" ,(reloading #'confirm-delete-file) "delete")
-       ("m" ,(reloading (given-file #'rename-file "Move")) "move")
-       ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
+	(ivy-add-actions
+	 'counsel-find-file
+	 `(("c" ,(given-file #'copy-file "Copy") "copy")
+	   ("d" ,(reloading #'confirm-delete-file) "delete")
+	   ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
+	(ivy-add-actions
+	 'counsel-projectile-find-file
+	 `(("c" ,(given-file #'copy-file "Copy") "copy")
+	   ("d" ,(reloading #'confirm-delete-file) "delete")
+	   ("m" ,(reloading (given-file #'rename-file "Move")) "move")
+	   ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
 
-    ;; to make counsel-ag search the root projectile directory.
-    (defun counsel-ag-projectile ()
-      (interactive)
-      (counsel-ag nil (projectile-project-root)))
+	;; to make counsel-ag search the root projectile directory.
+	(defun counsel-ag-projectile ()
+	  (interactive)
+	  (counsel-ag nil (projectile-project-root)))
 
-    (setq counsel-find-file-at-point t)
-    ;; ignore . files or temporary files
-    (setq counsel-find-file-ignore-regexp
-          (concat
-           ;; File names beginning with # or .
-           "\\(?:q
-\\`[#.]\\)"
-           ;; File names ending with # or ~
-           "\\|\\(?:\\`.+?[#~]\\'\\)")))
+	(setq counsel-find-file-at-point t)
+	;; ignore . files or temporary files
+	(setq counsel-find-file-ignore-regexp
+	      (concat
+	       ;; File names beginning with # or .
+	       "\\(?:q
+    \\`[#.]\\)"
+	       ;; File names ending with # or ~
+	       "\\|\\(?:\\`.+?[#~]\\'\\)")))
 
-    (setq ivy-display-style nil)
-    (use-package ivy-hydra)
-    (define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
-    (define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
+	;(setq ivy-display-style 'fancy)
+
+	(use-package ivy-hydra :defer t :ensure t)
+	(define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
+	(define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
+
 #+END_SRC
 
 #+RESULTS:
@@ -270,8 +276,7 @@
 
 * Git
 #+BEGIN_SRC emacs-lisp
-(use-package magit)
-(require 'magit)
+(use-package magit :ensure t :defer t)
 (setq magit-refresh-status-buffer nil)
 (global-set-key [f2] 'magit-status)
 #+END_SRC
@@ -280,42 +285,38 @@
 : magit-status
 
 * Clojure
+
 #+BEGIN_SRC emacs-lisp
 (require 'ob-clojure)
-(use-package slime)
-(require 'slime)
-
+(use-package slime :ensure t :defer t)
 (setq org-babel-clojure-backend 'cider)
-(use-package cider)
-(require 'cider)
+(use-package cider :ensure t :defer t)
+(use-package clojure-mode :ensure t :defer t)
+(use-package paredit :ensure t :defer t)
+(use-package rainbow-delimiters :ensure t :defer t)
 
-(use-package clojure-mode)
-(require 'clojure-mode)
-
-(use-package paredit)
-(require 'paredit)
-
-(use-package rainbow-delimiters)
-(require 'rainbow-delimiters)
 (add-hook 'clojure-mode-hook 'rainbow-delimiters-mode)
 (add-hook 'clojure-mode-hook 'paredit-mode)
+(add-hook 'emacs-lisp-mode-hook 'paredit-mode)
 #+END_SRC
 
 #+RESULTS:
-| paredit-mode | rainbow-delimiters-mode | clojure--check-wrong-major-mode |
+| paredit-mode |
 
 * Python
 #+BEGIN_SRC emacs-lisp
-  (use-package elpy)
+  (use-package multi-line :defer t :ensure t)
+  (use-package elpy :defer t :ensure t)
   (pyvenv-mode)
+  (use-package realgud :defer t)
 
   (defun ssbb-pyenv-hook ()
     "Automatically activates pyenv version if .python-version file exists."
     (f-traverse-upwards
      (lambda (path)
        (let ((pyenv-version-path (f-expand ".python-version" path)))
-         (if (f-exists? pyenv-version-path)
-             (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
+	 (if (f-exists? pyenv-version-path)
+	     (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
 
   (add-hook 'find-file-hook 'ssbb-pyenv-hook)
   (add-to-list 'exec-path "~/.pyenv/shims")
@@ -336,7 +337,7 @@
     (ring-insert find-tag-marker-ring (point-marker))
     (condition-case nil (elpy-goto-definition)
       (error (elpy-rgrep-symbol
-              (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+	      (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
 
   (define-key elpy-mode-map [f5] 'elpy-goto-definition-or-rgrep)
 
@@ -349,42 +350,48 @@
 #+BEGIN_SRC emacs-lisp
   (global-company-mode)
   (global-set-key (kbd "TAB") #'company-indent-or-complete-common)
-  (use-package projectile)
-  (require 'projectile)
+  (use-package projectile :ensure t :defer t)
   (projectile-mode)
   (setq projectile-switch-project-action 'projectile-dired)
 
-  (use-package docker-tramp)
-  (require 'docker-tramp)
+  (use-package docker-tramp :defer t :ensure t)
+  (use-package yaml-mode :defer t :ensure t)
 
-  (use-package yaml-mode)
-  (require 'yaml-mode)
 #+END_SRC
 
 #+RESULTS:
+: yaml-mode
 
 * Navigation
 #+BEGIN_SRC emacs-lisp
+  (use-package expand-region
+    :defer t :ensure t)
+  (global-set-key (kbd "C-.") 'er/expand-region)
+  (global-set-key (kbd "C->") 'er/contract-region)
+
+  (when (string= system-type "darwin")
+    (setq dired-use-ls-dired nil))
+
   (use-package avy
     :ensure t
     :bind ("M-s" . avy-goto-char))
 
-  (use-package undo-tree)
+  (use-package undo-tree :defer t :ensure t)
   (require 'undo-tree)
   (global-undo-tree-mode)
 
-  ;;(use-package neotree)
-  ;;(require 'neotree)
-  ;;(global-set-key [f3] 'neotree-toggle)
+  (use-package neotree :defer t :ensure t)
+  (require 'neotree)
+  (global-set-key [f3] 'neotree-toggle)
   (global-set-key [f4] 'eshell)
 
   (require 'recentf)
   (recentf-mode 1)
-  (setq recentf-max-menu-items 50)
+  (setq recentf-max-menu-items 100)
 
   (add-hook 'prog-mode-hook (lambda ()
-                              (linum-mode t)
-                              (electric-pair-mode)))
+			      (linum-mode t)
+			      (electric-pair-mode)))
   (show-paren-mode)       ; Automatically highlight parenthesis pairs
   (setq show-paren-delay 0) ; show the paren match immediately
 
@@ -401,10 +408,10 @@
   (use-package docker
     :defer t
     :diminish
-  )
+    )
   (use-package dockerfile-mode
     :defer t
-  )
+    )
 #+END_SRC
 
 #+RESULTS:
@@ -412,88 +419,16 @@
 
 * Services
 #+BEGIN_SRC emacs-lisp
-    (use-package prodigy)
-
-    (prodigy-define-service
-      :name "Kubectl proxy"
-      :command "kubectl"
-      :args '("proxy")
-      :cwd "/tmp"
-      :tags '(kubernetes)
-      :stop-signal 'sigkill
-      :kill-process-buffer-on-stop t)
-
-    (prodigy-define-service
-      :name "Canonical"
-      :command "pserver"
-      :args '("-c" "config-stage.local.json")
-      :path "/Users/danielmanchon/Atlasense/canonical-api/bin/"
-      :cwd "/Users/danielmanchon/Atlasense/canonical-api"
-      :tags '(atlasense buildout)
-      :stop-signal 'sigkill
-      :kill-process-buffer-on-stop t)
-
-    (prodigy-define-service
-      :name "Buildout canonical"
-      :command "buildout"
-      :path "/Users/danielmanchon/Atlasense/canonical-api/bin/"
-      :cwd "/Users/danielmanchon/Atlasense/canonical-api"
-      :tags '(atlasense buildout)
-      :stop-signal 'sigkill
-      :kill-process-buffer-on-stop t)
-
-    (prodigy-define-service
-      :name "User api dev cluster up"
-      :command "/usr/local/bin/docker-compose"
-      :args '("-f" "docker-compose-dev.yml" "up")
-      :path "/Users/danielmanchon/Atlasense/user-api/"
-      :cwd "/Users/danielmanchon/Atlasense/user-api"
-      :tags '(atlasense docker)
-      :stop-signal 'sigkill
-      :kill-process-buffer-on-stop t)
-
+;    (use-package prodigy)
 #+END_SRC
 
 #+RESULTS:
-| :name | User api dev cluster up | :command | /usr/local/bin/docker-compose               | :args | (-f docker-compose-dev.yml up)                    | :path | /Users/danielmanchon/Atlasense/user-api/          | :cwd  | /Users/danielmanchon/Atlasense/user-api      | :tags        | (atlasense docker)   | :stop-signal                 | sigkill | :kill-process-buffer-on-stop | t |
-| :name | Buildout canonical      | :command | buildout                                    | :path | /Users/danielmanchon/Atlasense/canonical-api/bin/ | :cwd  | /Users/danielmanchon/Atlasense/canonical-api      | :tags | (atlasense buildout)                         | :stop-signal | sigkill              | :kill-process-buffer-on-stop | t       |                              |   |
-| :name | Canonical               | :command | pserver                                     | :args | (-c config-stage.local.json)                      | :path | /Users/danielmanchon/Atlasense/canonical-api/bin/ | :cwd  | /Users/danielmanchon/Atlasense/canonical-api | :tags        | (atlasense buildout) | :stop-signal                 | sigkill | :kill-process-buffer-on-stop | t |
-| :name | Kubectl proxy           | :command | kubectl                                     | :args | (proxy)                                           | :cwd  | /tmp                                              | :tags | (kubernetes)                                 | :stop-signal | sigkill              | :kill-process-buffer-on-stop | t       |                              |   |
-| :name | User api dev cluster    | :command | docker-compose -f docker-compose-dev.yml up | :path | /Users/danielmanchon/Atlasense/user-api/          | :cwd  | /Users/danielmanchon/Atlasense/user-api           | :tags | (atlasense docker)                           | :stop-signal | sigkill              | :kill-process-buffer-on-stop | t       |                              |   |
-
-* Deprecated
-** Helm
+* Nix
 #+BEGIN_SRC emacs-lisp
-;(use-package helm)
-;(use-package helm-projectile)
-;(require 'helm-config)
-;(global-set-key (kbd "M-x") 'helm-M-x)
-;(global-set-key (kbd "C-x C-f") 'helm-find-files)
-;(global-set-key (kbd "C-x b") 'helm-buffers-list)
-;(global-set-key (kbd "C-x C-r") 'helm-for-files)
-;(global-set-key (kbd "M-y") 'helm-show-kill-ring)
-;(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
-;(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB work in terminal
-;(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
-;(setq helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
-;      helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
-;      helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
-;      helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
-;      helm-ff-file-name-history-use-recentf t
-;      helm-echo-input-in-header-line t)
-;(require 'helm-projectile)
-;(helm-projectile-on)
+(use-package nix-mode
+   :defer t :ensure t)
 
-;(use-package helm-ag)
-;(require 'helm-ag)
-;(helm-mode 1)
 #+END_SRC
 
 #+RESULTS:
-=t
-==t
-==t
-==t
-==t
-==t
-=
+: t
