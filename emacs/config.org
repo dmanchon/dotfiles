@@ -34,9 +34,11 @@
 
 * Paths
 #+BEGIN_SRC emacs-lisp
+(setq exec-path-from-shell-arguments '("-l"))
 (use-package exec-path-from-shell :ensure t :defer t)
 (when (memq window-system '(mac ns))
   (exec-path-from-shell-initialize))
+
 
 (setq shell-file-name "/bin/zsh")
 (use-package multi-term :defer t :ensure t)
@@ -110,7 +112,7 @@
 
 
 #+RESULTS:
-| no-trailing-whitespace |
+: change-my-background-color
 
 * Org mode
 #+BEGIN_SRC emacs-lisp
@@ -195,9 +197,8 @@
 				      (t . ivy--regex-plus))))
 
       (use-package counsel-projectile :ensure t :defer t
-	:bind* (("C-c p p" . counsel-projectile))
+	:bind* (("C-c p p" . counsel-projectile-switch-project))
 	:init
-	(setq counsel-projectile-drop-to-switch-project-binding "C-c s p")
 	(counsel-projectile-on))
 
       (use-package counsel :ensure t :defer t
@@ -421,7 +422,6 @@
 #+BEGIN_SRC emacs-lisp
 (use-package prodigy :defer t :ensure t)
 #+END_SRC
-
 #+RESULTS:
 
 * Nix
