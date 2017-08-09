@@ -116,6 +116,13 @@
 
 * Org mode
 #+BEGIN_SRC emacs-lisp
+(define-key global-map "\C-cl" 'org-store-link)
+(define-key global-map "\C-ca" 'org-agenda)
+
+(setq org-directory (expand-file-name "~/.emacs.d/org"))
+(setq org-default-notes-file (concat org-directory "/mygtd.org"))
+(setq org-agenda-files '("~/.emacs.d/org" "~/.emacs.d/www/org" "~/.emacs.d/www/_org"))
+
 (setq org-confirm-babel-evaluate nil ;; don't prompt for confirmation about executing a block
       org-src-tab-acts-natively t
       org-use-sub-superscripts '{}
@@ -186,7 +193,7 @@
 * Ivy
 #+BEGIN_SRC emacs-lisp
   (use-package ace-window :ensure t :defer t
-      :bind* (("M-p" . ace-window)))
+      :bind* (("C-x o" . ace-window)))
 
   (use-package ivy :ensure t :defer t
     :diminish ivy-mode
