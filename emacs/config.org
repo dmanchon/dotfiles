@@ -1,10 +1,10 @@
 * Compile file
 #+BEGIN_SRC emacs-lisp
-(defun dmanchon/compile-config ()
-  (interactive)
-  (org-babel-load-file "~/.emacs.d/config.el")
-  (byte-recompile-directory emacs-directory "." 0)
-)
+;(defun dmanchon/compile-config ()
+;  (interactive)
+;  (org-babel-load-file "~/.emacs.d/config.org")
+;  (byte-recompile-directory "~/.emacs.d/" "." 0)
+;)
 
 (setq gc-cons-threshold 50000000)
 
@@ -112,12 +112,20 @@
 
 
 #+RESULTS:
-: change-my-background-color
+| no-trailing-whitespace |
 
 * Org mode
 #+BEGIN_SRC emacs-lisp
-(setq org-src-fontify-natively t)
+(setq org-confirm-babel-evaluate nil ;; don't prompt for confirmation about executing a block
+      org-src-tab-acts-natively t
+      org-use-sub-superscripts '{}
+      org-src-fontify-natively t)
+(use-package htmlize :defer t :ensure t)
+(use-package ox-twbs :defer t :ensure t)
 #+END_SRC
+
+#+RESULTS:
+: t
 
 * Latex
 #+BEGIN_SRC emacs-lisp
@@ -177,98 +185,101 @@
 
 * Ivy
 #+BEGIN_SRC emacs-lisp
-      (use-package ivy :ensure t :defer t
-	:diminish ivy-mode
-	:init (setq projectile-completion-system 'ivy)
-	:bind
-	(:map ivy-mode-map ("C-'" . ivy-avy))
-	:config
-	(ivy-mode 1)
-	(setq ivy-use-virtual-buffers t)
-	(setq ivy-height 10)
-	(setq ivy-initial-inputs-alist nil)
-	(setq ivy-count-format "%d/%d ")
-	(setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
-	(setq ivy-extra-directories '("./")) ; default value: ("../" "./")
-	(setq ivy-wrap t)
-	(setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
-				      (counsel-ag . ivy--regex-plus)
-				      (counsel-grep-or-swiper . ivy--regex-plus)
-				      (t . ivy--regex-plus))))
+  (use-package ace-window :ensure t :defer t
+      :bind* (("M-p" . ace-window)))
 
-      (use-package counsel-projectile :ensure t :defer t
-	:bind* (("C-c p p" . counsel-projectile-switch-project))
-	:init
-	(counsel-projectile-on))
+  (use-package ivy :ensure t :defer t
+    :diminish ivy-mode
+    :init (setq projectile-completion-system 'ivy)
+    :bind
+    (:map ivy-mode-map ("C-'" . ivy-avy))
+    :config
+    (ivy-mode 1)
+    (setq ivy-use-virtual-buffers t)
+    (setq ivy-height 10)
+    (setq ivy-initial-inputs-alist nil)
+    (setq ivy-count-format "%d/%d ")
+    (setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
+    (setq ivy-extra-directories '("./")) ; default value: ("../" "./")
+    (setq ivy-wrap t)
+    (setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
+				  (counsel-ag . ivy--regex-plus)
+				  (counsel-grep-or-swiper . ivy--regex-plus)
+				  (t . ivy--regex-plus))))
 
-      (use-package counsel :ensure t :defer t
-	:bind*
-	(("M-x" . counsel-M-x)
-	 ("C-s" . swiper)
-	 ("C-c d d" . counsel-descbinds)
-	 ("C-c s s" . counsel-ag)
-	 ("C-c s d" . counsel-ag-projectile)
-	 ("C-x C-f" . counsel-find-file)
-	 ("C-x r" . counsel-recentf)
-	 ("C-c g g" . counsel-git)
-	 ("C-c g G" . counsel-git-grep)
-	 ("C-x l" . counsel-locate)
-	 ("C-c g s" . counsel-grep-or-swiper)
-	 ("M-y" . counsel-yank-pop)
-	 ("C-c C-r" . ivy-resume)
-	 ("C-c i m" . counsel-imenu)
-	 ("C-c i M" . ivy-imenu-anywhere)
-	 ("C-c d s" . describe-symbol)
-	 :map ivy-minibuffer-map
-	 ("M-y" . ivy-next-line-and-call))
+  (use-package counsel-projectile :ensure t :defer t
+    :bind* (("C-c p p" . counsel-projectile-switch-project))
+    :init
+    (counsel-projectile-on))
 
-	:config
-	(defun reloading (cmd)
-	  (lambda (x)
-	    (funcall cmd x)
-	    (ivy--reset-state ivy-last)))
-	(defun given-file (cmd prompt) ; needs lexical-binding
-	  (lambda (source)
-	    (let ((target
-		   (let ((enable-recursive-minibuffers t))
-		     (read-file-name
-		      (format "%s %s to:" prompt source)))))
-	      (funcall cmd source target 1))))
-	(defun confirm-delete-file (x)
-	  (dired-delete-file x 'confirm-each-subdirectory))
+  (use-package counsel :ensure t :defer t
+    :bind*
+    (("M-x" . counsel-M-x)
+     ("C-s" . swiper)
+     ("C-c d d" . counsel-descbinds)
+     ("C-c s s" . counsel-ag)
+     ("C-c s d" . counsel-ag-projectile)
+     ("C-x C-f" . counsel-find-file)
+     ("C-x r" . counsel-recentf)
+     ("C-c g g" . counsel-git)
+     ("C-c g G" . counsel-git-grep)
+     ("C-x l" . counsel-locate)
+     ("C-c g s" . counsel-grep-or-swiper)
+     ("M-y" . counsel-yank-pop)
+     ("C-c C-r" . ivy-resume)
+     ("C-c i m" . counsel-imenu)
+     ("C-c i M" . ivy-imenu-anywhere)
+     ("C-c d s" . describe-symbol)
+     :map ivy-minibuffer-map
+     ("M-y" . ivy-next-line-and-call))
 
-	(ivy-add-actions
-	 'counsel-find-file
-	 `(("c" ,(given-file #'copy-file "Copy") "copy")
-	   ("d" ,(reloading #'confirm-delete-file) "delete")
-	   ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
-	(ivy-add-actions
-	 'counsel-projectile-find-file
-	 `(("c" ,(given-file #'copy-file "Copy") "copy")
-	   ("d" ,(reloading #'confirm-delete-file) "delete")
-	   ("m" ,(reloading (given-file #'rename-file "Move")) "move")
-	   ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
+    :config
+    (defun reloading (cmd)
+      (lambda (x)
+	(funcall cmd x)
+	(ivy--reset-state ivy-last)))
+    (defun given-file (cmd prompt) ; needs lexical-binding
+      (lambda (source)
+	(let ((target
+	       (let ((enable-recursive-minibuffers t))
+		 (read-file-name
+		  (format "%s %s to:" prompt source)))))
+	  (funcall cmd source target 1))))
+    (defun confirm-delete-file (x)
+      (dired-delete-file x 'confirm-each-subdirectory))
 
-	;; to make counsel-ag search the root projectile directory.
-	(defun counsel-ag-projectile ()
-	  (interactive)
-	  (counsel-ag nil (projectile-project-root)))
+    (ivy-add-actions
+     'counsel-find-file
+     `(("c" ,(given-file #'copy-file "Copy") "copy")
+       ("d" ,(reloading #'confirm-delete-file) "delete")
+       ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
+    (ivy-add-actions
+     'counsel-projectile-find-file
+     `(("c" ,(given-file #'copy-file "Copy") "copy")
+       ("d" ,(reloading #'confirm-delete-file) "delete")
+       ("m" ,(reloading (given-file #'rename-file "Move")) "move")
+       ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
 
-	(setq counsel-find-file-at-point t)
-	;; ignore . files or temporary files
-	(setq counsel-find-file-ignore-regexp
-	      (concat
-	       ;; File names beginning with # or .
-	       "\\(?:q
-    \\`[#.]\\)"
-	       ;; File names ending with # or ~
-	       "\\|\\(?:\\`.+?[#~]\\'\\)")))
+    ;; to make counsel-ag search the root projectile directory.
+    (defun counsel-ag-projectile ()
+      (interactive)
+      (counsel-ag nil (projectile-project-root)))
 
-	;(setq ivy-display-style 'fancy)
+    (setq counsel-find-file-at-point t)
+    ;; ignore . files or temporary files
+    (setq counsel-find-file-ignore-regexp
+	  (concat
+	   ;; File names beginning with # or .
+	   "\\(?:q
+      \\`[#.]\\)"
+	   ;; File names ending with # or ~
+	   "\\|\\(?:\\`.+?[#~]\\'\\)")))
 
-	(use-package ivy-hydra :defer t :ensure t)
-	(define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
-	(define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
+					  ;(setq ivy-display-style 'fancy)
+
+  (use-package ivy-hydra :defer t :ensure t)
+  (define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
+  (define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
 
 #+END_SRC
 
@@ -365,6 +376,14 @@
 
 * Navigation
 #+BEGIN_SRC emacs-lisp
+
+  (use-package dashboard
+    :config
+    (dashboard-setup-startup-hook))
+  (setq dashboard-items '((recents  . 10)
+			   (bookmarks . 5)
+			   (projects . 5)
+			   (agenda . 5)))
   (use-package expand-region
     :defer t :ensure t)
   (global-set-key (kbd "C-.") 'er/expand-region)
@@ -398,6 +417,9 @@
 
   (global-hl-line-mode)
 
+  (custom-set-faces
+    '(hl-line ((t (:background "LightGoldenrod2")))))
+
   (defalias 'yes-or-no-p 'y-or-n-p)
   (setq confirm-kill-emacs 'y-or-n-p)
 
@@ -405,6 +427,15 @@
   (global-set-key (kbd "C--") 'text-scale-decrease)
 
   (setq org-src-fontify-natively t)
+
+  (use-package guide-key
+    :ensure t
+    :config
+    (setq guide-key/guide-key-sequence '("C-c" "C-x"))
+    (setq guide-key/recursive-key-sequence-flag t)
+    (setq guide-key/idle-delay 1)
+    (setq guide-key/popup-window-position 'bottom)
+    (guide-key-mode 1))
 
   (use-package docker
     :defer t
@@ -418,12 +449,6 @@
 #+RESULTS:
 : t
 
-* Services
-#+BEGIN_SRC emacs-lisp
-(use-package prodigy :defer t :ensure t)
-#+END_SRC
-#+RESULTS:
-
 * Nix
 #+BEGIN_SRC emacs-lisp
 (use-package nix-mode
@@ -432,3 +457,9 @@
 
 #+RESULTS:
 : t
+
+* Services
+#+BEGIN_SRC emacs-lisp
+(use-package prodigy :defer t :ensure t)
+#+END_SRC
+#+RESULTS:
