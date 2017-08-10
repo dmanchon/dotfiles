@@ -1,0 +1,7 @@
+** %^{Name}
+   *When:* %U
+   *Where:* %F
+   *What:* %?
+#+BEGIN_SRC %^{lang |emacs-lisp|python|javascript|shell|java|typescript}
+%i
+#+END_SRC

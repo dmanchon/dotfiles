@@ -116,19 +116,36 @@
 
 * Org mode
 #+BEGIN_SRC emacs-lisp
-(define-key global-map "\C-cl" 'org-store-link)
-(define-key global-map "\C-ca" 'org-agenda)
+  (define-key global-map "\C-cl" 'org-store-link)
+  (define-key global-map "\C-ca" 'org-agenda)
+  (define-key global-map "\C-cc" 'org-capture)
 
-(setq org-directory (expand-file-name "~/.emacs.d/org"))
-(setq org-default-notes-file (concat org-directory "/mygtd.org"))
-(setq org-agenda-files '("~/.emacs.d/org" "~/.emacs.d/www/org" "~/.emacs.d/www/_org"))
+  (setq org-directory (expand-file-name "~/.emacs.d/org"))
 
-(setq org-confirm-babel-evaluate nil ;; don't prompt for confirmation about executing a block
-      org-src-tab-acts-natively t
-      org-use-sub-superscripts '{}
-      org-src-fontify-natively t)
-(use-package htmlize :defer t :ensure t)
-(use-package ox-twbs :defer t :ensure t)
+  (setq org-capture-templates
+	'(("t"     ;hotkey
+	   "Todo"  ;name
+	   entry   ;type
+	   (file+headline "~/.emacs.d/org/gtd.org" "Tasks")
+	   "* TODO %?\n  %i\n  %a") ;template
+	  ("s"
+	   "Snippet"
+	   entry
+	   (file+headline "~/.emacs.d/org/gtd.org" "Code Snippets")
+	   (file "~/.emacs.d/org/snippet.template"))
+	  ("j"
+	   "Journal"
+	   entry
+	   (file+datetree "~/.emacs.d/org/journal.org")
+	   "*** %^{Title} %U\n    %?")))
+
+
+  (setq org-confirm-babel-evaluate nil ;; don't prompt for confirmation about executing a block
+	org-src-tab-acts-natively t
+	org-use-sub-superscripts '{}
+	org-src-fontify-natively t)
+  (use-package htmlize :defer t :ensure t)
+  (use-package ox-twbs :defer t :ensure t)
 #+END_SRC
 
 #+RESULTS:
