@@ -1,20 +1,10 @@
 * Compile file
-#+BEGIN_SRC emacs-lisp
-;(defun dmanchon/compile-config ()
-;  (interactive)
-;  (org-babel-load-file "~/.emacs.d/config.org")
-;  (byte-recompile-directory "~/.emacs.d/" "." 0)
-;)
-
+#+BEGIN_SRC emacs-lisp :results value silent
 (setq gc-cons-threshold 50000000)
-
 #+END_SRC
 
-#+RESULTS:
-: 100000000
-
 * Package managment
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 ;; Bootstrap use-package
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -30,10 +20,8 @@
 (use-package better-defaults :defer t :ensure t)
 #+END_SRC
 
-#+RESULTS:
-
 * Paths
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (setq exec-path-from-shell-arguments '("-l"))
 (use-package exec-path-from-shell :ensure t :defer t)
 (when (memq window-system '(mac ns))
@@ -51,11 +39,8 @@
       `((".*" ,temporary-file-directory t)))
 #+END_SRC
 
-#+RESULTS:
-| .* | /var/folders/sp/my_8jlzs395g1txr9s0c0m800000gn/T/ | t |
-
 * PGP and authorization
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (setq user-full-name "Daniel Manchon"
       user-mail-address "dmanchon@gmail.com")
 
@@ -73,11 +58,8 @@
 (setenv "LC_ALL" "en_US.UTF-8")
 #+END_SRC
 
-#+RESULTS:
-: en_US.UTF-8
-
 * Theme and fonts
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (when (window-system)
   (tool-bar-mode -1)
   (scroll-bar-mode -1))
@@ -110,34 +92,46 @@
 	  'no-trailing-whitespace)
 #+END_SRC
 
-
-#+RESULTS:
-| no-trailing-whitespace |
-
 * Org mode
-#+BEGIN_SRC emacs-lisp
+We need to define were the base folder for all the org files is:
+#+BEGIN_SRC emacs-lisp :results value silent
+  (setq org-directory (expand-file-name "~/.emacs.d/org"))
+  (setq org-agenda-files
+     '("~/.emacs.d/org/gtd.org" "~/.emacs.d/org/archive.org"))
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp :results value silent
   (define-key global-map "\C-cl" 'org-store-link)
   (define-key global-map "\C-ca" 'org-agenda)
   (define-key global-map "\C-cc" 'org-capture)
 
-  (setq org-directory (expand-file-name "~/.emacs.d/org"))
+  (global-set-key (kbd "C-c o")
+		  (lambda () (interactive) (find-file (concat org-directory "/gtd.org"))))
+
+  (setq org-refile-targets '((org-agenda-files . (:maxlevel . 3))))
 
   (setq org-capture-templates
 	'(("t"     ;hotkey
 	   "Todo"  ;name
 	   entry   ;type
-	   (file+headline "~/.emacs.d/org/gtd.org" "Tasks")
+	   (file+headline (concat org-directory "/gtd.org") "Tasks")
 	   "* TODO %?\n  %i\n  %a") ;template
 	  ("s"
-	   "Snippet"
+	   "Code Snippet"
 	   entry
-	   (file+headline "~/.emacs.d/org/gtd.org" "Code Snippets")
+	   (file+headline (concat org-directory "/gtd.org") "Code Snippets")
 	   (file "~/.emacs.d/org/snippet.template"))
-	  ("j"
-	   "Journal"
+	  ("l"
+	   "For later consideration"
 	   entry
-	   (file+datetree "~/.emacs.d/org/journal.org")
-	   "*** %^{Title} %U\n    %?")))
+	   (file+headline (concat org-directory "/gtd.org") "To be refiled")
+	   "* TODO %^{Title} %^G\n  DEADLINE: %^t\n  %?")
+	  ("j"
+	   "Journal entry"
+	   entry
+	   (file+datetree (concat org-directory "/journal.org.gpg"))
+	   "*** %^{Title}\n    %?" :clock-in t :clock-resume t)))
 
 
   (setq org-confirm-babel-evaluate nil ;; don't prompt for confirmation about executing a block
@@ -148,11 +142,8 @@
   (use-package ox-twbs :defer t :ensure t)
 #+END_SRC
 
-#+RESULTS:
-: t
-
 * Latex
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (use-package markdown-mode
   :ensure t
   :commands (markdown-mode gfm-mode)
@@ -162,10 +153,8 @@
   :init (setq markdown-command "pandoc"))
 #+END_SRC
 
-#+RESULTS:
-
 * JS/HTML/CSS/Typescript
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (use-package groovy-mode :defer t :ensure t)
 (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
 
@@ -195,20 +184,15 @@
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
 #+END_SRC
 
-#+RESULTS:
-| setup-tide-mode |
-
 * Org babel mode
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
   (require 'ob-python)
   (require 'ob-sh)
   (require 'ob-emacs-lisp)
 #+END_SRC
-#+RESULTS:
-: ob-emacs-lisp
 
 * Ivy
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
   (use-package ace-window :ensure t :defer t
       :bind* (("C-x o" . ace-window)))
 
@@ -307,22 +291,16 @@
 
 #+END_SRC
 
-#+RESULTS:
-: ivy-alt-done
-
 * Git
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (use-package magit :ensure t :defer t)
 (setq magit-refresh-status-buffer nil)
 (global-set-key [f2] 'magit-status)
 #+END_SRC
 
-#+RESULTS:
-: magit-status
-
 * Clojure
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (require 'ob-clojure)
 (use-package slime :ensure t :defer t)
 (setq org-babel-clojure-backend 'cider)
@@ -336,11 +314,8 @@
 (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
 #+END_SRC
 
-#+RESULTS:
-| paredit-mode |
-
 * Python
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
   (use-package multi-line :defer t :ensure t)
   (use-package elpy :defer t :ensure t)
   (pyvenv-mode)
@@ -379,11 +354,8 @@
 
 #+END_SRC
 
-#+RESULTS:
-: elpy-goto-definition-or-rgrep
-
 * Project
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
   (global-company-mode)
   (global-set-key (kbd "TAB") #'company-indent-or-complete-common)
   (use-package projectile :ensure t :defer t)
@@ -395,19 +367,8 @@
 
 #+END_SRC
 
-#+RESULTS:
-: yaml-mode
-
 * Navigation
-#+BEGIN_SRC emacs-lisp
-
-  (use-package dashboard
-    :config
-    (dashboard-setup-startup-hook))
-  (setq dashboard-items '((recents  . 10)
-			   (bookmarks . 5)
-			   (projects . 5)
-			   (agenda . 5)))
+#+BEGIN_SRC emacs-lisp :results value silent
   (use-package expand-region
     :defer t :ensure t)
   (global-set-key (kbd "C-.") 'er/expand-region)
@@ -439,13 +400,17 @@
   (show-paren-mode)       ; Automatically highlight parenthesis pairs
   (setq show-paren-delay 0) ; show the paren match immediately
 
-  (global-hl-line-mode)
 
-  (custom-set-faces
-    '(hl-line ((t (:background "LightGoldenrod2")))))
+  (use-package hl-line
+   :config (set-face-background 'hl-line "LightGoldenrod2"))
+  (global-hl-line-mode)
 
   (defalias 'yes-or-no-p 'y-or-n-p)
   (setq confirm-kill-emacs 'y-or-n-p)
+
+  (use-package diff-hl
+   :init (global-diff-hl-mode)
+   :config (add-hook 'vc-checkin-hook 'diff-hl-update))
 
   (global-set-key (kbd "C-+") 'text-scale-increase)
   (global-set-key (kbd "C--") 'text-scale-decrease)
@@ -470,20 +435,13 @@
     )
 #+END_SRC
 
-#+RESULTS:
-: t
-
 * Nix
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (use-package nix-mode
    :defer t :ensure t)
 #+END_SRC
 
-#+RESULTS:
-: t
-
 * Services
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :results value silent
 (use-package prodigy :defer t :ensure t)
 #+END_SRC
-#+RESULTS:
