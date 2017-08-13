@@ -6,9 +6,10 @@ export ZSH=$HOME/.oh-my-zsh
 # Optionally, if you set this to "random", it'll load a random theme each
 # time that oh-my-zsh is loaded. (default= robbyrussell)
 if [ -n "$INSIDE_EMACS" ]; then
-    export ZSH_THEME="rawsyntax"
+    export ZSH_THEME="kennethreitz"
 else
-    export ZSH_THEME="mh"
+    #export ZSH_THEME="mh"
+    export ZSH_THEME="kennethreitz"
 fi
 
 # Example aliases
@@ -31,7 +32,8 @@ source $ZSH/oh-my-zsh.sh
 
 # Enable zsh syntax highlighting
 source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-unset VIRTUAL_ENV_DISABLE_PROMPT
+#unset VIRTUAL_ENV_DISABLE_PROMPT
+
 
 # Enable z
 . `brew --prefix`/etc/profile.d/z.sh
@@ -48,3 +50,25 @@ bashcompinit
 fpath=(/usr/local/share/zsh-completions $fpath)
 source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/local/share/zsh-navigation-tools/zsh-navigation-tools.plugin.zsh
+
+# User configuration
+PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+PATH="$PATH:/usr/local/texlive/2017/bin/x86_64-darwin"
+PATH="$PATH:/Users/dmanchon/Atlasense/google-cloud-sdk/bin"
+PATH="/usr/local/opt/gpg-agent/bin:$PATH"
+
+PYENV_ROOT="$HOME/.pyenv"
+PATH="$PYENV_ROOT/bin:$PATH"
+WORKON_HOME=~/.envs
+eval "$(pyenv init -)"
+
+# You may need to manually set your language environment
+LC_ALL=en_US.UTF-8
+LANG=en_US.UTF-8
+
+if [ -f ~/.gnupg/.gpg-agent-info ] && [ -n "$(pgrep gpg-agent)" ]; then
+    source ~/.gnupg/.gpg-agent-info
+    export GPG_AGENT_INFO
+else
+    eval $(gpg-agent --daemon --write-env-file ~/.gnupg/.gpg-agent-info)
+fi
