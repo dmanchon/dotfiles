@@ -21,7 +21,14 @@ antigen bundle docker
 antigen bundle zsh-users/zsh-syntax-highlighting
 antigen bundle zsh-users/zsh-history-substring-search
 antigen bundle redis-cli
-antigen bundle vundle
+antigen bundle npm
+antigen bundle node
+antigen bundle mvn
+antigen bundle pass
+antigen bundle sbt
+antigen bundle vagrant
+antigen bundle cp
+antigen bundle bower
 antigen bundle colored-man-pages
 antigen bundle command-not-found
 antigen bundle sroze/docker-compose-zsh-plugin
