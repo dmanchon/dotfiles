@@ -18,84 +18,91 @@
   (setq use-package-always-demand t))
 
 (use-package better-defaults :defer t :ensure t)
-(use-package f :ensure t)
 #+END_SRC
 
 * Paths
 #+BEGIN_SRC emacs-lisp :results value silent
+  (setq home-folder "/Users/dmanchon")
+  (use-package f :ensure t)
   (setq exec-path-from-shell-arguments '("-l"))
   (use-package exec-path-from-shell :ensure t :defer t)
   (when (memq window-system '(mac ns))
     (exec-path-from-shell-initialize))
 
+  (when (memq window-system '(mac ns))
+    (exec-path-from-shell-initialize)
+    (exec-path-from-shell-copy-env "GOPATH"))
 
+  (setenv "GOPATH" (concat home-folder "/golang"))
+  (add-to-list 'exec-path (concat home-folder "/golang/bin"))
   (setq shell-file-name "/bin/zsh")
   (use-package multi-term :defer t :ensure t)
   (setq multi-term-program "/bin/zsh")
+
+  ;; store all backup and autosave files in the tmp dir
+  (setq temporary-file-directory (concat default-directory "temp"))
+  (setq backup-directory-alist
+        `((".*" . ,temporary-file-directory)))
+  (setq auto-save-file-name-transforms
+        `((".*" ,temporary-file-directory t)))
 #+END_SRC
 
 * PGP and authorization
 #+BEGIN_SRC emacs-lisp :results value silent
-(setq user-full-name "Daniel Manchon"
-      user-mail-address "dmanchon@gmail.com")
+  (setq user-full-name "Daniel Manchon"
+        user-mail-address "dmanchon@gmail.com")
 
-;; Use only authinfo.gpg for password storage
-(use-package auth-source-pass
-  :ensure t
-  :defer t
-  :init
-  (auth-source-pass-enable))
-;; Make sure it's the only mechanism
-(setq auth-sources '(password-store))
-(setq auth-source-gpg-encrypt-to (list user-mail-address))
-(setq epg-gpg-program "gpg2")
-(setenv "GPG_AGENT_INFO" nil)
-(setenv "LC_ALL" "en_US.UTF-8")
+  ;; Use only authinfo.gpg for password storage
+  (use-package helm-pass)
+  (setq auth-sources '(password-store))
+  (setq auth-source-gpg-encrypt-to (list user-mail-address))
+  (setq epg-gpg-program "gpg")
+  (setenv "GPG_AGENT_INFO" nil)
+  (setenv "LC_ALL" "en_US.UTF-8")
 #+END_SRC
 
 * Theme and fonts
 #+BEGIN_SRC emacs-lisp :results value silent
-  (set-language-environment "UTF-8")
   (when (window-system)
-    (tool-bar-mode -1)
-    (scroll-bar-mode -1))
-  (menu-bar-mode t)
+       (tool-bar-mode -1)
+       (scroll-bar-mode -1))
+     (menu-bar-mode t)
 
-  ;;Source Code Pro
-  (set-face-attribute 'default nil
-                      :family "IBM Plex Mono"
-                      :height 200
-                      :weight 'normal
-                      :width 'normal)
+     (set-face-attribute 'default nil
+                         :family "IBM Plex Mono"
+                         :height 190
+                         :slant 'normal
+                         :weight 'semi-light
+                         :width 'condensed)
 
-  (use-package moe-theme :demand t)
-  (moe-light)
 
-  (defun no-trailing-whitespace ()
-    (setq show-trailing-whitespace nil))
+     (use-package moe-theme :demand t)
+     (moe-light)
 
-  (add-hook 'minibuffer-setup-hook
-            'no-trailing-whitespace)
-  (add-hook 'eww-mode-hook
-            'no-trailing-whitespace)
-  (add-hook 'ielm-mode-hook
-            'no-trailing-whitespace)
-  (add-hook 'gdb-mode-hook
-            'no-trailing-whitespace)
-  (add-hook 'help-mode-hook
-            'no-trailing-whitespace)
+     (defun no-trailing-whitespace ()
+       (setq show-trailing-whitespace nil))
+
+     (add-hook 'minibuffer-setup-hook
+               'no-trailing-whitespace)
+     (add-hook 'eww-mode-hook
+               'no-trailing-whitespace)
+     (add-hook 'ielm-mode-hook
+               'no-trailing-whitespace)
+     (add-hook 'gdb-mode-hook
+               'no-trailing-whitespace)
+     (add-hook 'help-mode-hook
+               'no-trailing-whitespace)
 #+END_SRC
 
 * Org mode
 We need to define were the base folder for all the org files is:
 #+BEGIN_SRC emacs-lisp :results value silent
-  (setq org-directory (expand-file-name "~/.emacs.d/org"))
+  (require 'ox-beamer)
+  (use-package ox-reveal :ensure t :defer t)
+  (setq org-directory (expand-file-name (concat default-directory "org")))
   (setq org-agenda-files
-     '("~/.emacs.d/org/gtd.org" "~/.emacs.d/org/archive.org"))
-#+END_SRC
+     `(,(concat org-directory "/gtd.org") ,(concat org-directory "/archive.org")))
 
-
-#+BEGIN_SRC emacs-lisp :results value silent
   (define-key global-map "\C-cl" 'org-store-link)
   (define-key global-map "\C-ca" 'org-agenda)
   (define-key global-map "\C-cc" 'org-capture)
@@ -106,25 +113,25 @@ We need to define were the base folder for all the org files is:
   (setq org-refile-targets '((org-agenda-files . (:maxlevel . 3))))
 
   (setq org-capture-templates
-        '(("t"     ;hotkey
+        `(("t"     ;hotkey
            "Todo"  ;name
            entry   ;type
-           (file+headline "~/.emacs.d/org/gtd.org" "Tasks")
+           (file+headline ,(concat org-directory "/gtd.org") "Tasks")
            "* TODO %?\n  %i\n  %a") ;template
           ("s"
            "Code Snippet"
            entry
-           (file+headline "~/.emacs.d/org/gtd.org" "Code Snippets")
-           (file "~/.emacs.d/org/templates/snippet.template"))
+           (file+headline ,(concat org-directory "/gtd.org") "Code Snippets")
+           (file ,(concat org-directory "/snippet.template")))
           ("l"
            "For later consideration"
            entry
-           (file+headline "~/.emacs.d/org/gtd.org" "To be refiled")
+           (file+headline ,(concat org-directory "/gtd.org") "To be refiled")
            "* TODO %^{Title} %^G\n  DEADLINE: %^t\n  %?")
           ("j"
            "Journal entry"
            entry
-           (file+datetree "~/.emacs.d/org/journal.org.gpg")
+           (file+olp+datetree ,(concat org-directory "/journal.org.gpg"))
            "*** %^{Title}\n    %?" :clock-in t :clock-resume t)))
 
 
@@ -134,6 +141,13 @@ We need to define were the base folder for all the org files is:
         org-src-fontify-natively t)
   (use-package htmlize :defer t :ensure t)
   (use-package ox-twbs :defer t :ensure t)
+#+END_SRC
+
+* Org babel mode
+#+BEGIN_SRC emacs-lisp :results value silent
+  (require 'ob-python)
+  (require 'ob-shell)
+  (require 'ob-emacs-lisp)
 #+END_SRC
 
 * Latex
@@ -147,21 +161,40 @@ We need to define were the base folder for all the org files is:
   :init (setq markdown-command "pandoc"))
 #+END_SRC
 
+* Project
+#+BEGIN_SRC emacs-lisp :results value silent
+  (use-package company :defer t :ensure t)
+  (use-package multi-line :defer t :ensure t)
+  (use-package projectile
+    :ensure t
+    :config
+    (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+    (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+    (projectile-mode +1))
+
+  (use-package ag)
+  (use-package helm-ag :defer t :ensure t)
+  (use-package helm-projectile :defer t :ensure t
+    :config
+    (helm-projectile-on))
+
+  (setq-default indent-tabs-mode nil)
+  (global-company-mode)
+  (global-set-key (kbd "TAB") #'company-indent-or-complete-common)
+  (use-package docker-tramp :defer t :ensure t)
+  (use-package yaml-mode :defer t :ensure t)
+
+#+END_SRC
+
 * JS/HTML/CSS/Typescript
 #+BEGIN_SRC emacs-lisp :results value silent
-(use-package groovy-mode :defer t :ensure t)
-(add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
-
-
-(use-package company :defer t :ensure t)
 (use-package typescript-mode :defer t :ensure t)
-
 (use-package tide :defer t :ensure t)
 (defun setup-tide-mode ()
   (interactive)
   (tide-setup)
   (flycheck-mode +1)
-  ;(setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
   (eldoc-mode +1)
   (tide-hl-identifier-mode +1)
   ;; company is an optional dependency. You have to
@@ -173,119 +206,109 @@ We need to define were the base folder for all the org files is:
 (setq company-tooltip-align-annotations t)
 
 ;; formats the buffer before saving
-;(add-hook 'before-save-hook 'tide-format-before-save)
-
+(add-hook 'before-save-hook 'tide-format-before-save)
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
 #+END_SRC
 
-* Org babel mode
+* Clojure
+
 #+BEGIN_SRC emacs-lisp :results value silent
-  (require 'ob-python)
-  (require 'ob-shell)
-  (require 'ob-emacs-lisp)
+  (require 'ob-clojure)
+  (use-package slime :ensure t :defer t)
+  (setq org-babel-clojure-backend 'cider)
+  (use-package cider :ensure t :defer t)
+  (use-package clojure-mode :ensure t :defer t)
+  (use-package paredit :ensure t :defer t)
+  (use-package rainbow-delimiters :ensure t :defer t)
+
+  (add-hook 'clojure-mode-hook 'rainbow-delimiters-mode)
+  (add-hook 'clojure-mode-hook 'paredit-mode)
+  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
+  (setq cider-cljs-lein-repl
+        "(do (require 'figwheel-sidecar.repl-api)
+             (figwheel-sidecar.repl-api/start-figwheel!)
+             (figwheel-sidecar.repl-api/cljs-repl))")
+
+  (condition-case err
+      (load (expand-file-name "~/quicklisp/slime-helper.el"))
+    (error (princ (format "The error was: %s" err))))
+
+  ;; Replace "sbcl" with the path to your implementation
+  (setq inferior-lisp-program "sbcl")
+
+
 #+END_SRC
 
-* Ivy
+* Python
+Choose between elpy or anaconda-mode
 #+BEGIN_SRC emacs-lisp :results value silent
-  (use-package ace-window :ensure t :defer t
-      :bind* (("C-x o" . ace-window)))
+  (use-package pyvenv)
+  (pyvenv-mode)
+  (use-package f)
+  (defun ssbb-pyenv-hook ()
+    "Automatically activates pyenv version if .python-version file exists."
+       (f-traverse-upwards
+        (lambda (path)
+          (let ((pyenv-version-path (f-expand ".python-version" path)))
+            (if (f-exists? pyenv-version-path)
+                (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
 
-  (use-package ivy :ensure t
-    :diminish ivy-mode
-    :init (setq projectile-completion-system 'ivy)
-    :bind
-    (:map ivy-mode-map ("C-'" . ivy-avy))
-    :config
-    (ivy-mode 1)
-    (setq ivy-use-virtual-buffers t)
-    (setq ivy-height 10)
-    (setq ivy-initial-inputs-alist nil)
-    (setq ivy-count-format "%d/%d ")
-    (setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
-    (setq ivy-extra-directories '("./")) ; default value: ("../" "./")
-    (setq ivy-wrap t)
-    (setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
-                                  (counsel-ag . ivy--regex-plus)
-                                  (counsel-grep-or-swiper . ivy--regex-plus)
-                                  (t . ivy--regex-plus))))
+  (add-hook 'find-file-hook 'ssbb-pyenv-hook)
+  (add-to-list 'exec-path "~/.pyenv/shims")
+  (setq python-check-command (expand-file-name "~/.pyenv/shims/flake8"))
+  (setq python-check-command "flake8")
+  (use-package realgud :defer t)
 
-  (use-package counsel-projectile :ensure t
-    :bind* (("C-c p p" . counsel-projectile-switch-project))
-    :init
-    (counsel-projectile-mode)
-    )
+  ;; cleanup whitespace on save.  This is run as a before-save-hook
+  ;; because it would throw flake8 errors on after-save-hook
+  (add-hook 'before-save-hook 'whitespace-cleanup)
 
-  (use-package counsel :ensure t
-    :bind*
-    (("M-x" . counsel-M-x)
-     ("C-s" . swiper)
-     ("C-c d d" . counsel-descbinds)
-     ("C-c s s" . counsel-ag)
-     ("C-c s d" . counsel-ag-projectile)
-     ("C-x C-f" . counsel-find-file)
-     ("C-x r" . counsel-recentf)
-     ("C-c g g" . counsel-git)
-     ("C-c g G" . counsel-git-grep)
-     ("C-x l" . counsel-locate)
-     ("C-c g s" . counsel-grep-or-swiper)
-     ("M-y" . counsel-yank-pop)
-     ("C-c r" . ivy-resume)
-     ("C-c i m" . counsel-imenu)
-     ("C-c i M" . ivy-imenu-anywhere)
-     ("C-c d s" . describe-symbol)
-     :map ivy-minibuffer-map
-     ("M-y" . ivy-next-line-and-call))
+  ;; elpy
+  (defun dmanchon/elpy-config ()
+    (use-package elpy :defer t :ensure t)
+    (elpy-enable)
+    (setq elpy-rpc-backend "jedi"))
 
-    :config
-    (define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
-    (define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
-    (defun reloading (cmd)
-      (lambda (x)
-        (funcall cmd x)
-        (ivy--reset-state ivy-last)))
-    (defun given-file (cmd prompt) ; needs lexical-binding
-      (lambda (source)
-        (let ((target
-               (let ((enable-recursive-minibuffers t))
-                 (read-file-name
-                  (format "%s %s to:" prompt source)))))
-          (funcall cmd source target 1))))
-    (defun confirm-delete-file (x)
-      (dired-delete-file x 'confirm-each-subdirectory))
+  ;; anaconda
+  (defun dmanchon/anaconda-config ()
+    (use-package anaconda-mode :defer t :ensure t)
+    (add-hook 'python-mode-hook 'anaconda-mode)
+    (add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+    (use-package company-anaconda :defer t :ensure t)
+    (eval-after-load "company"
+      '(add-to-list 'company-backends 'company-anaconda)))
 
-    (ivy-add-actions
-     'counsel-find-file
-     `(("c" ,(given-file #'copy-file "Copy") "copy")
-       ("d" ,(reloading #'confirm-delete-file) "delete")
-       ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
-    (ivy-add-actions
-     'counsel-projectile-find-file
-     `(("c" ,(given-file #'copy-file "Copy") "copy")
-       ("d" ,(reloading #'confirm-delete-file) "delete")
-       ("m" ,(reloading (given-file #'rename-file "Move")) "move")
-       ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
+     ;;(dmanchon/anaconda-config)
+  (add-hook 'python-mode-hook 'flycheck-mode)
+  (dmanchon/elpy-config)
+    (use-package lsp-ui)
+  (setq lsp-ui-sideline-enable nil)
+  (use-package lsp-python)
+  (add-hook 'lsp-mode-hook 'lsp-ui-mode)
+  (add-hook 'python-mode-hook #'lsp-python-enable)
 
-    ;; to make counsel-ag search the root projectile directory.
-    (defun counsel-ag-projectile ()
-      (interactive)
-      (counsel-ag nil (projectile-project-root)))
+#+END_SRC
 
-    (setq counsel-find-file-at-point t)
-    ;; ignore . files or temporary files
-    (setq counsel-find-file-ignore-regexp
-          (concat
-           ;; File names beginning with # or .
-           "\\(?:q
-      \\`[#.]\\)"
-           ;; File names ending with # or ~
-           "\\|\\(?:\\`.+?[#~]\\'\\)")))
+* Golang
+#+BEGIN_SRC emacs-lisp :results value silent
+  (use-package go-projectile :defer t :ensure t)
+  (use-package company-go :defer t :ensure t)
+  (use-package go-mode :defer t :ensure t)
 
-  (setq ivy-display-style 'fancy)
+  (add-hook 'go-mode-hook 'flycheck-mode)
+  (use-package lsp-go :defer t :ensure t)
+  (require 'lsp-go)
+  (add-hook 'go-mode-hook #'lsp-go-enable)
+  ;;(add-hook 'completion-at-point-functions 'go-complete-at-point)
 
-  (use-package ivy-hydra :defer t :ensure t)
-  (use-package counsel-dash :defer t :ensure t)
-  (use-package dash-at-point :defer t :ensure t)
-  (global-set-key "\C-cb" 'dash-at-point)
+#+END_SRC
+
+* Other programming languages
+#+BEGIN_SRC emacs-lisp :results value silent
+  (use-package groovy-mode :defer t :ensure t)
+  (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
+  (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
+  (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
 
 #+END_SRC
 
@@ -293,158 +316,163 @@ We need to define were the base folder for all the org files is:
 #+BEGIN_SRC emacs-lisp :results value silent
 (use-package magit :ensure t :defer t)
 (setq magit-refresh-status-buffer nil)
+(global-set-key (kbd "C-x g") 'magit-status)
 (global-set-key [f2] 'magit-status)
 #+END_SRC
 
-* Clojure
+* Ivy
 #+BEGIN_SRC emacs-lisp :results value silent
-(require 'ob-clojure)
-(use-package slime :ensure t :defer t)
-(setq org-babel-clojure-backend 'cider)
-(use-package cider :ensure t :defer t)
-(use-package clojure-mode :ensure t :defer t)
-(use-package paredit :ensure t :defer t)
-(use-package rainbow-delimiters :ensure t :defer t)
+    (use-package ace-window :ensure t :defer t
+        :bind* (("C-x o" . ace-window)))
 
-(add-hook 'clojure-mode-hook 'rainbow-delimiters-mode)
-(add-hook 'clojure-mode-hook 'paredit-mode)
-(add-hook 'emacs-lisp-mode-hook 'paredit-mode)
-#+END_SRC
+    (use-package ivy :ensure t :defer t
+      :diminish ivy-mode
+      :init (setq projectile-completion-system 'ivy)
+      :bind
+      (:map ivy-mode-map ("C-'" . ivy-avy))
+      :config
+      (ivy-mode 1)
+      (setq ivy-use-virtual-buffers t)
+      (setq ivy-height 10)
+      (setq ivy-initial-inputs-alist nil)
+      (setq ivy-count-format "%d/%d ")
+      (setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
+      (setq ivy-extra-directories '("./")) ; default value: ("../" "./")
+      (setq ivy-wrap t)
+      (setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
+                                    (counsel-ag . ivy--regex-plus)
+                                    (counsel-grep-or-swiper . ivy--regex-plus)
+                                    (t . ivy--regex-plus))))
 
-* Other programming languages
-#+BEGIN_SRC emacs-lisp :results value silent
-(use-package ponylang-mode :ensure t :defer t)
-#+END_SRC
-* Python
-#+BEGIN_SRC emacs-lisp :results value silent
-    (use-package multi-line :defer t :ensure t)
-    (use-package elpy :defer t :ensure t)
-    (pyvenv-mode)
-    (use-package realgud :defer t)
+    (use-package counsel :ensure t :defer t
+      :bind*
+      (("M-x" . counsel-M-x)
+       ("C-s" . swiper)
+       ("C-c d d" . counsel-descbinds)
+       ("C-c s a" . counsel-osx-app)
+       ("C-c p a" . helm-projectile-ag)
+       ("C-x C-f" . counsel-find-file)
+       ("C-x r" . counsel-recentf)
+       ("C-c g g" . counsel-git)
+       ("C-c g G" . counsel-git-grep)
+       ("C-x l" . counsel-locate)
+       ("C-c g s" . counsel-grep-or-swiper)
+       ("M-y" . counsel-yank-pop)
+       ("C-c C-r" . ivy-resume)
+       ("C-c i m" . counsel-imenu)
+       ("C-c d s" . describe-symbol)
+       :map ivy-minibuffer-map
+       ("M-y" . ivy-next-line-and-call))
+      :config
+      (define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
+      (define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
+      (defun reloading (cmd)
+        (lambda (x)
+          (funcall cmd x)
+          (ivy--reset-state ivy-last)))
+      (defun given-file (cmd prompt) ; needs lexical-binding
+        (lambda (source)
+          (let ((target
+                 (let ((enable-recursive-minibuffers t))
+                   (read-file-name
+                    (format "%s %s to:" prompt source)))))
+            (funcall cmd source target 1))))
+      (defun confirm-delete-file (x)
+        (dired-delete-file x 'confirm-each-subdirectory))
 
-    (defun ssbb-pyenv-hook ()
-      "Automatically activates pyenv version if .python-version file exists."
-      (f-traverse-upwards
-       (lambda (path)
-         (let ((pyenv-version-path (f-expand ".python-version" path)))
-           (if (f-exists? pyenv-version-path)
-               (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
+      (ivy-add-actions
+       'counsel-find-file
+       `(("c" ,(given-file #'copy-file "Copy") "copy")
+         ("d" ,(reloading #'confirm-delete-file) "delete")
+         ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
+      (ivy-add-actions
+       'helm-projectile-find-file
+       `(("c" ,(given-file #'copy-file "Copy") "copy")
+         ("d" ,(reloading #'confirm-delete-file) "delete")
+         ("m" ,(reloading (given-file #'rename-file "Move")) "move")
+         ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
 
-    (add-hook 'find-file-hook 'ssbb-pyenv-hook)
-    (add-to-list 'exec-path "~/.pyenv/shims")
+      (setq counsel-find-file-at-point t)
+      ;; ignore . files or temporary files
+      (setq counsel-find-file-ignore-regexp
+            (concat
+             ;; File names beginning with # or .
+             "\\(?:q
+        \\`[#.]\\)"
+             ;; File names ending with # or ~
+             "\\|\\(?:\\`.+?[#~]\\'\\)")))
 
-    (elpy-enable)
-
-    (setq elpy-rpc-backend "jedi")
-    (setq python-check-command (expand-file-name "~/.pyenv/shims/flake8"))
-    (setq python-check-command "flake8")
-
-    ; cleanup whitespace on save.  This is run as a before-save-hook
-    ; because it would throw flake8 errors on after-save-hook
-    (add-hook 'before-save-hook 'whitespace-cleanup)
-
-    (defun elpy-goto-definition-or-rgrep ()
-      "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
-      (interactive)
-      (ring-insert find-tag-marker-ring (point-marker))
-      (condition-case nil (elpy-goto-definition)
-        (error (elpy-rgrep-symbol
-                (concat "\\(async def\\|def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
-
-    (define-key elpy-mode-map [f5] 'elpy-goto-definition-or-rgrep)
-
-    (defun dmanchon/elpy-occur-definitions ()
-      (interactive)
-      (let ((list-matching-lines-face nil))
-        (occur "^ *\\(async def\\|def\\|class\\) "))
-      (let ((window (get-buffer-window "*Occur*")))
-        (if window
-            (select-window window)
-          (switch-to-buffer "*Occur*"))))
-
-    (define-key elpy-mode-map (kbd "C-c C-o") 'dmanchon/elpy-occur-definitions)
-
-#+END_SRC
-
-* Project
-#+BEGIN_SRC emacs-lisp :results value silent
-  (global-company-mode)
-  (global-set-key (kbd "TAB") #'company-indent-or-complete-common)
-  (use-package projectile :ensure t :defer t)
-  (projectile-mode)
-  (setq projectile-switch-project-action 'projectile-dired)
-
-  (use-package docker-tramp :defer t :ensure t)
-  (use-package yaml-mode :defer t :ensure t)
-  (setq-default indent-tabs-mode nil)
-
-  (use-package fountain-mode :ensure t :defer t)
+    (setq ivy-display-style 'fancy)
+    (use-package ivy-hydra :defer t :ensure t)
+    (use-package counsel-osx-app :defer t :ensure t)
 #+END_SRC
 
 * Navigation
 #+BEGIN_SRC emacs-lisp :results value silent
-    (use-package expand-region
-      :defer t :ensure t)
-    (global-set-key (kbd "C-.") 'er/expand-region)
-    (global-set-key (kbd "C->") 'er/contract-region)
+  (use-package expand-region
+    :defer t :ensure t)
+  (global-set-key (kbd "C-.") 'er/expand-region)
+  (global-set-key (kbd "C->") 'er/contract-region)
 
-    (when (string= system-type "darwin")
-      (setq dired-use-ls-dired nil))
+  (when (string= system-type "darwin")
+    (setq dired-use-ls-dired nil))
 
-    (use-package avy
-      :ensure t
-      :bind ("M-s" . avy-goto-char))
+  (use-package avy
+    :ensure t
+    :bind ("M-s" . avy-goto-char))
 
-    (use-package undo-tree :defer t :ensure t)
-    (require 'undo-tree)
-    (global-undo-tree-mode)
+  (use-package undo-tree :defer t :ensure t)
+  (require 'undo-tree)
+  (global-undo-tree-mode)
 
-    (use-package neotree :defer t :ensure t)
-    (require 'neotree)
-    (global-set-key [f3] 'neotree-toggle)
-    (global-set-key [f4] 'eshell)
+  (use-package neotree :defer t :ensure t)
+  (require 'neotree)
+  (global-set-key [f3] 'neotree-toggle)
+  (global-set-key [f4] 'eshell)
 
-    (require 'recentf)
-    (recentf-mode 1)
-    (setq recentf-max-saved-items 100)
-    (setq recentf-max-menu-items 100)
+  (require 'recentf)
+  (recentf-mode 1)
+  (setq recentf-max-menu-items 100)
 
-    (add-hook 'prog-mode-hook (lambda ()
-                                (linum-mode t)
-                                (electric-pair-mode)))
-    (show-paren-mode)       ; Automatically highlight parenthesis pairs
-    (setq show-paren-delay 0) ; show the paren match immediately
+  (add-hook 'prog-mode-hook (lambda ()
+                              (linum-mode t)
+                              (electric-pair-mode)))
+  (show-paren-mode)       ; Automatically highlight parenthesis pairs
+  (setq show-paren-delay 0) ; show the paren match immediately
 
-    (global-hl-line-mode)
 
-    (defalias 'yes-or-no-p 'y-or-n-p)
-    (setq confirm-kill-emacs 'y-or-n-p)
+  (use-package hl-line
+   :config (set-face-background 'hl-line "LightGoldenrod2"))
+  (global-hl-line-mode)
 
-    (use-package diff-hl
-     :init (global-diff-hl-mode)
-     :config (add-hook 'vc-checkin-hook 'diff-hl-update))
+  (defalias 'yes-or-no-p 'y-or-n-p)
+  (setq confirm-kill-emacs 'y-or-n-p)
 
-    (global-set-key (kbd "C-+") 'text-scale-increase)
-    (global-set-key (kbd "C--") 'text-scale-decrease)
+  (use-package diff-hl
+   :init (global-diff-hl-mode)
+   :config (add-hook 'vc-checkin-hook 'diff-hl-update))
 
-    (setq org-src-fontify-natively t)
+  (global-set-key (kbd "C-+") 'text-scale-increase)
+  (global-set-key (kbd "C--") 'text-scale-decrease)
 
-    (use-package guide-key
-      :ensure t
-      :config
-      (setq guide-key/guide-key-sequence '("C-c" "C-x"))
-      (setq guide-key/recursive-key-sequence-flag t)
-      (setq guide-key/idle-delay 1)
-      (setq guide-key/popup-window-position 'bottom)
-      (guide-key-mode 1))
+  (setq org-src-fontify-natively t)
 
-    (use-package docker
-      :defer t
-      :diminish
-      )
-    (use-package dockerfile-mode
-      :defer t
-      )
+  (use-package guide-key
+    :ensure t
+    :config
+    (setq guide-key/guide-key-sequence '("C-c" "C-x"))
+    (setq guide-key/recursive-key-sequence-flag t)
+    (setq guide-key/idle-delay 1)
+    (setq guide-key/popup-window-position 'bottom)
+    (guide-key-mode 1))
+
+  (use-package docker
+    :defer t
+    :diminish
+    )
+  (use-package dockerfile-mode
+    :defer t
+    )
 #+END_SRC
 
 * Nix
@@ -455,12 +483,5 @@ We need to define were the base folder for all the org files is:
 
 * Services
 #+BEGIN_SRC emacs-lisp :results value silent
-  (use-package prodigy :defer t :ensure t)
-
-  ;; store all backup and autosave files in the tmp dir
-  (setq backup-directory-alist
-        `((".*" . ,temporary-file-directory)))
-  (setq auto-save-file-name-transforms
-        `((".*" ,temporary-file-directory t)))
-
+(use-package prodigy :defer t :ensure t)
 #+END_SRC
