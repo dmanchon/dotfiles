@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ "$DESKTOP_SESSION" = "xmonad" ] ; then
+    # Load resources
+    xrdb -merge .Xresources
+
+    # Fire up apps
+    xscreensaver -no-splash &
+fi

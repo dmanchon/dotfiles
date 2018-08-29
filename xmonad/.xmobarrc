@@ -1,0 +1,26 @@
+Config { font = "xft:IBM Plex Mono:regular:size=18"
+        , borderColor = "black"
+        , border = TopB
+        , bgColor = "black"
+        , fgColor = "grey"
+        , position = TopW L 100
+        , commands = [  Run Cpu ["-L","3","-H","50","--normal","green","--high","red"] 10
+                        , Run Network "wlp4s0" ["-L","0","-H","32","--normal","green","--high","red"] 10
+                        , Run Memory ["-t","Mem: <usedratio>%"] 10
+                        , Run Swap [] 10
+                        , Run Battery [
+                          "-t", "<acstatus>: <left>% - <timeleft>",
+                          "--",
+                          --"-c", "charge_full",
+                          "-O", "AC",
+                          "-o", "Bat",
+                          "-h", "green",
+                          "-l", "red"
+                        ] 10
+                        , Run Date "%a %b %_d %Y %H:%M:%S" "date" 10
+                        , Run StdinReader
+                        ]
+        , sepChar = "%"
+        , alignSep = "}{"
+        , template = "%StdinReader% | %cpu% | %memory% * %swap% | %battery% | %wlp4s0% }{ <fc=#ee9a00>%date%</fc> "
+        }
