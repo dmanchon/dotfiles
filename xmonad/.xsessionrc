@@ -6,4 +6,7 @@ if [ "$DESKTOP_SESSION" = "xmonad" ] ; then
 
     # Fire up apps
     xscreensaver -no-splash &
+
+    # Keys
+    xbindkeys
 fi

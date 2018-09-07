@@ -4,6 +4,10 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Util.Run(spawnPipe)
 import XMonad.Util.EZConfig(additionalKeys)
 import System.IO
+import XMonad.Actions.SpawnOn
+import XMonad.Config.Desktop
+import XMonad.Wallpaper
+import XMonad.Actions.GridSelect
 
 myManageHook = composeAll
     [ className =? "Gimp"      --> doFloat
@@ -11,8 +15,8 @@ myManageHook = composeAll
 
 main = do
     xmproc <- spawnPipe "xmobar -x 1"
-
-    xmonad $ docks defaultConfig
+    setRandomWallpaper ["$HOME/Pictures/"]
+    xmonad $ docks desktopConfig
         { manageHook = manageDocks <+> myManageHook -- make sure to include myManageHook definition from above
                         <+> manageHook defaultConfig
         , borderWidth = 2
@@ -26,7 +30,9 @@ main = do
         } `additionalKeys`
         [ ((controlMask, xK_Print), spawn "sleep 0.2; scrot -s")
         , ((0, xK_Print), spawn "scrot")
-        , ((mod4Mask .|. shiftMask, xK_a), spawn "pavucontrol")
-        , ((mod4Mask .|. shiftMask, xK_f), spawn "nautilus")
-        , ((mod4Mask .|. shiftMask, xK_z), spawn "xscreensaver-command -lock")
+        , ((mod4Mask, xK_a), spawn "pavucontrol")
+        , ((mod4Mask, xK_f), spawn "nautilus")
+        , ((mod4Mask, xK_x), spawn "emacsclient -c")
+        , ((mod4Mask, xK_g), goToSelected defaultGSConfig)
+        , ((mod4Mask, xK_z), spawn "xscreensaver-command -lock")
         ]

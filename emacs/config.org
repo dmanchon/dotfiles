@@ -22,7 +22,7 @@
 
 * Paths
 #+BEGIN_SRC emacs-lisp :results value silent
-  (setq home-folder "/Users/dmanchon")
+  (setq home-folder "/home/dmanchon")
   (use-package f :ensure t)
   (setq exec-path-from-shell-arguments '("-l"))
   (use-package exec-path-from-shell :ensure t :defer t)
@@ -33,14 +33,14 @@
     (exec-path-from-shell-initialize)
     (exec-path-from-shell-copy-env "GOPATH"))
 
-  (setenv "GOPATH" (concat home-folder "/golang"))
-  (add-to-list 'exec-path (concat home-folder "/golang/bin"))
+  (setenv "GOPATH" (concat home-folder "/go"))
+  (add-to-list 'exec-path (concat home-folder "/go/bin"))
   (setq shell-file-name "/bin/zsh")
   (use-package multi-term :defer t :ensure t)
   (setq multi-term-program "/bin/zsh")
 
   ;; store all backup and autosave files in the tmp dir
-  (setq temporary-file-directory (concat default-directory "temp"))
+  ;;(setq temporary-file-directory (concat default-directory "temp"))
   (setq backup-directory-alist
         `((".*" . ,temporary-file-directory)))
   (setq auto-save-file-name-transforms
@@ -63,42 +63,47 @@
 
 * Theme and fonts
 #+BEGIN_SRC emacs-lisp :results value silent
+  (use-package fill-column-indicator
+    :ensure t :defer t)
+  (define-globalized-minor-mode global-fci-mode fci-mode (lambda () (fci-mode 1)))
+  (global-fci-mode 1)
+
+  (tool-bar-mode -1)
+
   (when (window-system)
-       (tool-bar-mode -1)
-       (scroll-bar-mode -1))
-     (menu-bar-mode t)
+    (scroll-bar-mode -1))
+  (menu-bar-mode t)
 
-     (set-face-attribute 'default nil
-                         :family "IBM Plex Mono"
-                         :height 190
-                         :slant 'normal
-                         :weight 'semi-light
-                         :width 'condensed)
+  (set-face-attribute 'default nil
+                      :family "IBM Plex Mono"
+                      :height 100
+                      :slant 'normal
+                      :weight 'semi-light
+                      :width 'condensed)
 
 
-     (use-package moe-theme :demand t)
-     (moe-light)
+  (use-package moe-theme :demand t)
+  (moe-light)
 
-     (defun no-trailing-whitespace ()
-       (setq show-trailing-whitespace nil))
+  (defun no-trailing-whitespace ()
+    (setq show-trailing-whitespace nil))
 
-     (add-hook 'minibuffer-setup-hook
+  (add-hook 'minibuffer-setup-hook
+            'no-trailing-whitespace)
+  (add-hook 'eww-mode-hook
                'no-trailing-whitespace)
-     (add-hook 'eww-mode-hook
-               'no-trailing-whitespace)
-     (add-hook 'ielm-mode-hook
-               'no-trailing-whitespace)
-     (add-hook 'gdb-mode-hook
-               'no-trailing-whitespace)
-     (add-hook 'help-mode-hook
-               'no-trailing-whitespace)
+  (add-hook 'ielm-mode-hook
+            'no-trailing-whitespace)
+  (add-hook 'gdb-mode-hook
+            'no-trailing-whitespace)
+  (add-hook 'help-mode-hook
+            'no-trailing-whitespace)
 #+END_SRC
 
 * Org mode
 We need to define were the base folder for all the org files is:
 #+BEGIN_SRC emacs-lisp :results value silent
   (require 'ox-beamer)
-  (use-package ox-reveal :ensure t :defer t)
   (setq org-directory (expand-file-name (concat default-directory "org")))
   (setq org-agenda-files
      `(,(concat org-directory "/gtd.org") ,(concat org-directory "/archive.org")))
@@ -231,7 +236,7 @@ We need to define were the base folder for all the org files is:
 
   (condition-case err
       (load (expand-file-name "~/quicklisp/slime-helper.el"))
-    (error (princ (format "The error was: %s" err))))
+    (error (princ (format "Loading package slime-helper: %s" err))))
 
   ;; Replace "sbcl" with the path to your implementation
   (setq inferior-lisp-program "sbcl")
@@ -433,7 +438,7 @@ Choose between elpy or anaconda-mode
   (require 'recentf)
   (recentf-mode 1)
   (setq recentf-max-menu-items 100)
-
+  (setq recentf-max-saved-items 200)
   (add-hook 'prog-mode-hook (lambda ()
                               (linum-mode t)
                               (electric-pair-mode)))

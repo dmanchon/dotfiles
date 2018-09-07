@@ -1,4 +1,4 @@
-Config { font = "xft:IBM Plex Mono:regular:size=18"
+Config { font = "xft:IBM Plex Mono:regular:size=10"
         , borderColor = "black"
         , border = TopB
         , bgColor = "black"
