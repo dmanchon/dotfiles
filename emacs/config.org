@@ -168,6 +168,10 @@ We need to define were the base folder for all the org files is:
 
 * Project
 #+BEGIN_SRC emacs-lisp :results value silent
+  (use-package flycheck
+    :ensure t :defer t)
+
+  (add-hook 'after-init-hook #'global-flycheck-mode)
   (use-package company :defer t :ensure t)
   (use-package multi-line :defer t :ensure t)
   (use-package projectile
@@ -292,6 +296,17 @@ Choose between elpy or anaconda-mode
   (add-hook 'lsp-mode-hook 'lsp-ui-mode)
   (add-hook 'python-mode-hook #'lsp-python-enable)
 
+  (defun dmanchon/elpy-occur-definitions ()
+    (interactive)
+    (let ((list-matching-lines-face nil))
+      (occur "^ *\\(async def\\|def\\|class\\) "))
+    (let ((window (get-buffer-window "*Occur*")))
+      (if window
+          (select-window window)
+        (switch-to-buffer "*Occur*"))))
+
+  (define-key elpy-mode-map (kbd "C-c C-o") 'dmanchon/elpy-occur-definitions)
+
 #+END_SRC
 
 * Golang
@@ -304,8 +319,11 @@ Choose between elpy or anaconda-mode
   (use-package lsp-go :defer t :ensure t)
   (require 'lsp-go)
   (add-hook 'go-mode-hook #'lsp-go-enable)
-  ;;(add-hook 'completion-at-point-functions 'go-complete-at-point)
+  (add-hook 'before-save-hook 'gofmt-before-save)
 
+  (add-hook 'go-mode-hook (lambda ()
+                          (set (make-local-variable 'company-backends) '(company-go))
+                          (company-mode)))
 #+END_SRC
 
 * Other programming languages
