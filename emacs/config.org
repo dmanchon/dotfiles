@@ -22,7 +22,9 @@
 
 * Paths
 #+BEGIN_SRC emacs-lisp :results value silent
-  (setq home-folder "/home/dmanchon")
+  (setq home-folder "/Users/dmanchon")
+  (setq golang-home (concat home-folder "/golang"))
+
   (use-package f :ensure t)
   (setq exec-path-from-shell-arguments '("-l"))
   (use-package exec-path-from-shell :ensure t :defer t)
@@ -33,8 +35,9 @@
     (exec-path-from-shell-initialize)
     (exec-path-from-shell-copy-env "GOPATH"))
 
-  (setenv "GOPATH" (concat home-folder "/go"))
-  (add-to-list 'exec-path (concat home-folder "/go/bin"))
+  (setenv "GOPATH" golang-home)
+  (add-to-list 'exec-path (concat golang-home "/bin"))
+
   (setq shell-file-name "/bin/zsh")
   (use-package multi-term :defer t :ensure t)
   (setq multi-term-program "/bin/zsh")
@@ -76,7 +79,7 @@
 
   (set-face-attribute 'default nil
                       :family "IBM Plex Mono"
-                      :height 100
+                      :height 150
                       :slant 'normal
                       :weight 'semi-light
                       :width 'condensed)
@@ -332,7 +335,19 @@ Choose between elpy or anaconda-mode
   (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
   (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
   (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
-
+  (ignore-errors
+    (load
+     "/Users/dmanchon/.opam/default/share/emacs/site-lisp/tuareg-site-file"))
+  (let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
+    (when (and opam-share (file-directory-p opam-share))
+      ;; Register Merlin
+      (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
+      (autoload 'merlin-mode "merlin" nil t nil)
+      ;; Automatically start it in OCaml buffers
+      (add-hook 'tuareg-mode-hook 'merlin-mode t)
+      (add-hook 'caml-mode-hook 'merlin-mode t)
+      ;; Use opam switch to lookup ocamlmerlin binary
+      (setq merlin-command 'opam)))
 #+END_SRC
 
 * Git
