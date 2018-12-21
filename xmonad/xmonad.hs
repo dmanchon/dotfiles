@@ -21,7 +21,7 @@ main = do
                         <+> manageHook defaultConfig
         , borderWidth = 2
         , terminal    = "urxvt"
-        , layoutHook = avoidStruts  $  layoutHook defaultConfig
+        , layoutHook = avoidStruts  $  layoutHook desktopConfig
         , logHook = dynamicLogWithPP $ xmobarPP
                         { ppOutput = hPutStrLn xmproc
                         , ppTitle = xmobarColor "green" "" . shorten 50
@@ -32,6 +32,7 @@ main = do
         , ((0, xK_Print), spawn "scrot")
         , ((mod4Mask, xK_a), spawn "pavucontrol")
         , ((mod4Mask, xK_f), spawn "nautilus")
+        , ((mod4Mask, xK_r), spawn "autorandr -c --force")
         , ((mod4Mask, xK_x), spawn "emacsclient -c")
         , ((mod4Mask, xK_g), goToSelected defaultGSConfig)
         , ((mod4Mask, xK_z), spawn "xscreensaver-command -lock")

@@ -1,6 +1,7 @@
 * Compile file
 #+BEGIN_SRC emacs-lisp :results value silent
 (setq gc-cons-threshold 50000000)
+(setq load-prefer-newer t)
 #+END_SRC
 
 * Package managment
@@ -20,11 +21,72 @@
 (use-package better-defaults :defer t :ensure t)
 #+END_SRC
 
+* Mail
+#+BEGIN_SRC emacs-lisp :results value silent
+  (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+  (setq mu4e-mu-binary "/usr/local/bin/mu")
+  (require 'mu4e)
+
+  ;; use mu4e for e-mail in emacs
+  (setq mail-user-agent 'mu4e-user-agent)
+
+  ;; default
+  (setq mu4e-maildir "~/.Maildir")
+
+  (setq mu4e-drafts-folder "/[Gmail].Drafts")
+  (setq mu4e-sent-folder   "/[Gmail].Sent Mail")
+  (setq mu4e-trash-folder  "/[Gmail].Trash")
+
+  (setq
+   mu4e-get-mail-command "offlineimap" )  ;; or fetchmail, or ...
+  ;;  mu4e-update-interval 300)             ;; update every 5 minutes
+
+  ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
+  (setq mu4e-sent-messages-behavior 'delete)
+
+  ;; (See the documentation for `mu4e-sent-messages-behavior' if you have
+  ;; additional non-Gmail addresses and want assign them different
+  ;; behavior.)
+
+  ;; setup some handy shortcuts
+  ;; you can quickly switch to your Inbox -- press ``ji''
+  ;; then, when you want archive some messages, move them to
+  ;; the 'All Mail' folder by pressing ``ma''.
+
+  (setq mu4e-maildir-shortcuts
+        '( ("/INBOX"               . ?i)
+           ("/[Gmail].Sent Mail"   . ?s)
+           ("/[Gmail].Trash"       . ?t)
+           ("/[Gmail].All Mail"    . ?a)))
+
+
+  ;; something about ourselves
+  (setq
+   user-mail-address "daniel@onna.com"
+   user-full-name  "Daniel Manchon"
+   mu4e-compose-signature
+   (concat
+    "Daniel Manchon\n"
+    "https://www.onna.com\n"))
+
+  ;; sending mail -- use local smtp relay server with docker
+  ;; docker container run -d -p 25:25 \                                                                               ~
+  ;;  -e MAIL_RELAY_HOST='smtp.gmail.com' \
+  ;;  -e MAIL_RELAY_PORT='587' \
+  ;;  -e MAIL_RELAY_USER='daniel@onna.com' \
+  ;;  -e MAIL_RELAY_PASS='[REDACTED]' \
+  ;;  tecnativa/postfix-relay
+  (require 'smtpmail)
+  (setq send-mail-function 'smtpmail-send-it
+        smtpmail-smtp-server "localhost"
+        smtpmail-smtp-service "25")
+
+  (setq message-kill-buffer-on-exit t)
+#+END_SRC
+
 * Paths
 #+BEGIN_SRC emacs-lisp :results value silent
-  (setq home-folder "/Users/dmanchon")
-  (setq golang-home (concat home-folder "/golang"))
-
+  (setq home-folder "/home/dmanchon")
   (use-package f :ensure t)
   (setq exec-path-from-shell-arguments '("-l"))
   (use-package exec-path-from-shell :ensure t :defer t)
@@ -35,9 +97,8 @@
     (exec-path-from-shell-initialize)
     (exec-path-from-shell-copy-env "GOPATH"))
 
-  (setenv "GOPATH" golang-home)
-  (add-to-list 'exec-path (concat golang-home "/bin"))
-
+  (setenv "GOPATH" (concat home-folder "/go"))
+  (add-to-list 'exec-path (concat home-folder "/go/bin"))
   (setq shell-file-name "/bin/zsh")
   (use-package multi-term :defer t :ensure t)
   (setq multi-term-program "/bin/zsh")
@@ -53,7 +114,7 @@
 * PGP and authorization
 #+BEGIN_SRC emacs-lisp :results value silent
   (setq user-full-name "Daniel Manchon"
-        user-mail-address "dmanchon@gmail.com")
+        user-mail-address "daniel@onna.com")
 
   ;; Use only authinfo.gpg for password storage
   (use-package helm-pass)
@@ -62,6 +123,19 @@
   (setq epg-gpg-program "gpg")
   (setenv "GPG_AGENT_INFO" nil)
   (setenv "LC_ALL" "en_US.UTF-8")
+  (require 'tramp)
+  ;; for gcloud ssh
+  (add-to-list 'tramp-methods
+               '("gcssh"
+                 (tramp-login-program        "gcloud compute ssh")
+                 (tramp-login-args           (("%h")))
+                 (tramp-async-args           (("-q")))
+                 (tramp-remote-shell         "/bin/sh")
+                 (tramp-remote-shell-args    ("-c"))
+                 (tramp-gw-args              (("-o" "GlobalKnownHostsFile=/dev/null")
+                                              ("-o" "UserKnownHostsFile=/dev/null")
+                                              ("-o" "StrictHostKeyChecking=no")))
+                 (tramp-default-port         22)))
 #+END_SRC
 
 * Theme and fonts
@@ -79,7 +153,7 @@
 
   (set-face-attribute 'default nil
                       :family "IBM Plex Mono"
-                      :height 150
+                      :height 110
                       :slant 'normal
                       :weight 'semi-light
                       :width 'condensed)
@@ -165,6 +239,7 @@ We need to define were the base folder for all the org files is:
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
+         ("\\.rd\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "pandoc"))
 #+END_SRC
@@ -189,6 +264,15 @@ We need to define were the base folder for all the org files is:
   (use-package helm-projectile :defer t :ensure t
     :config
     (helm-projectile-on))
+
+  (use-package lsp-mode :ensure t)
+  ;; in case you are using client which is available as part of lsp refer to the
+  ;; table bellow for the clients that are distributed as part of lsp-mode.el
+  (require 'lsp-clients)
+  (add-hook 'programming-mode-hook 'lsp)
+  (use-package lsp-ui)
+  (setq lsp-ui-sideline-enable nil)
+  ;;(add-hook 'lsp-mode-hook 'lsp-ui-mode)
 
   (setq-default indent-tabs-mode nil)
   (global-company-mode)
@@ -259,11 +343,11 @@ Choose between elpy or anaconda-mode
   (use-package f)
   (defun ssbb-pyenv-hook ()
     "Automatically activates pyenv version if .python-version file exists."
-       (f-traverse-upwards
-        (lambda (path)
-          (let ((pyenv-version-path (f-expand ".python-version" path)))
-            (if (f-exists? pyenv-version-path)
-                (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
+    (f-traverse-upwards
+     (lambda (path)
+       (let ((pyenv-version-path (f-expand ".python-version" path)))
+         (if (f-exists? pyenv-version-path)
+             (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
 
   (add-hook 'find-file-hook 'ssbb-pyenv-hook)
   (add-to-list 'exec-path "~/.pyenv/shims")
@@ -290,14 +374,11 @@ Choose between elpy or anaconda-mode
     (eval-after-load "company"
       '(add-to-list 'company-backends 'company-anaconda)))
 
-     ;;(dmanchon/anaconda-config)
+  ;;(dmanchon/anaconda-config)
   (add-hook 'python-mode-hook 'flycheck-mode)
   (dmanchon/elpy-config)
-    (use-package lsp-ui)
-  (setq lsp-ui-sideline-enable nil)
-  (use-package lsp-python)
-  (add-hook 'lsp-mode-hook 'lsp-ui-mode)
-  (add-hook 'python-mode-hook #'lsp-python-enable)
+
+  (add-hook 'python-mode-hook 'flycheck-mode)
 
   (defun dmanchon/elpy-occur-definitions ()
     (interactive)
@@ -319,8 +400,6 @@ Choose between elpy or anaconda-mode
   (use-package go-mode :defer t :ensure t)
 
   (add-hook 'go-mode-hook 'flycheck-mode)
-  (use-package lsp-go :defer t :ensure t)
-  (require 'lsp-go)
   (add-hook 'go-mode-hook #'lsp-go-enable)
   (add-hook 'before-save-hook 'gofmt-before-save)
 
@@ -331,23 +410,39 @@ Choose between elpy or anaconda-mode
 
 * Other programming languages
 #+BEGIN_SRC emacs-lisp :results value silent
-  (use-package groovy-mode :defer t :ensure t)
-  (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
-  (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
-  (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
-  (ignore-errors
-    (load
-     "/Users/dmanchon/.opam/default/share/emacs/site-lisp/tuareg-site-file"))
-  (let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
-    (when (and opam-share (file-directory-p opam-share))
-      ;; Register Merlin
-      (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
-      (autoload 'merlin-mode "merlin" nil t nil)
-      ;; Automatically start it in OCaml buffers
-      (add-hook 'tuareg-mode-hook 'merlin-mode t)
-      (add-hook 'caml-mode-hook 'merlin-mode t)
-      ;; Use opam switch to lookup ocamlmerlin binary
-      (setq merlin-command 'opam)))
+    (use-package groovy-mode :defer t :ensure t)
+    (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
+    (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
+    (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
+    (use-package protobuf-mode :defer t :ensure t)
+
+    (use-package merlin :defer t :ensure t)
+    (setq merlin-command 'opam)  ; needed only if ocamlmerlin not already in your PATH
+    (autoload 'merlin-mode "merlin" "Merlin mode" t)
+    (add-hook 'tuareg-mode-hook 'merlin-mode)
+    (add-hook 'caml-mode-hook 'merlin-mode)
+    (condition-case err
+        (load "/home/dmanchon/.opam/system/share/emacs/site-lisp/tuareg-site-file")
+      (error (princ (format "Loading package slime-helper: %s" err))))
+
+    (use-package dap-mode
+      :ensure t
+      :after lsp-mode
+      :config
+      (dap-mode t)
+      (dap-ui-mode t))
+    (require 'dap-java)
+    (use-package lsp-java
+      :ensure t
+      :requires (lsp-ui-flycheck lsp-ui-sideline)
+      :config
+      (add-hook 'java-mode-hook  'lsp-java-enable)
+      (add-hook 'java-mode-hook  'flycheck-mode)
+      (add-hook 'java-mode-hook  'company-mode)
+      (add-hook 'java-mode-hook  (lambda () (lsp-ui-flycheck-enable t)))
+      (add-hook 'java-mode-hook  'lsp-ui-mode))
+  (use-package company-lsp :ensure t)
+  ;(push 'company-lsp company-backends)
 #+END_SRC
 
 * Git
