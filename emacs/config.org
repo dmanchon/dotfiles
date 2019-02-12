@@ -89,16 +89,13 @@
   (setq home-folder "/home/dmanchon")
   (use-package f :ensure t)
   (setq exec-path-from-shell-arguments '("-l"))
-  (use-package exec-path-from-shell :ensure t :defer t)
-  (when (memq window-system '(mac ns))
-    (exec-path-from-shell-initialize))
-
-  (when (memq window-system '(mac ns))
-    (exec-path-from-shell-initialize)
-    (exec-path-from-shell-copy-env "GOPATH"))
+  (use-package exec-path-from-shell :ensure t)
+  (exec-path-from-shell-initialize)
+  (exec-path-from-shell-copy-env "GOPATH")
 
   (setenv "GOPATH" (concat home-folder "/go"))
   (add-to-list 'exec-path (concat home-folder "/go/bin"))
+  (add-to-list 'exec-path "/usr/local/go/bin")
   (setq shell-file-name "/bin/zsh")
   (use-package multi-term :defer t :ensure t)
   (setq multi-term-program "/bin/zsh")
@@ -114,7 +111,7 @@
 * PGP and authorization
 #+BEGIN_SRC emacs-lisp :results value silent
   (setq user-full-name "Daniel Manchon"
-        user-mail-address "daniel@onna.com")
+        user-mail-address "dmanchon@gmail.com")
 
   ;; Use only authinfo.gpg for password storage
   (use-package helm-pass)
@@ -265,15 +262,6 @@ We need to define were the base folder for all the org files is:
     :config
     (helm-projectile-on))
 
-  (use-package lsp-mode :ensure t)
-  ;; in case you are using client which is available as part of lsp refer to the
-  ;; table bellow for the clients that are distributed as part of lsp-mode.el
-  (require 'lsp-clients)
-  (add-hook 'programming-mode-hook 'lsp)
-  (use-package lsp-ui)
-  (setq lsp-ui-sideline-enable nil)
-  ;;(add-hook 'lsp-mode-hook 'lsp-ui-mode)
-
   (setq-default indent-tabs-mode nil)
   (global-company-mode)
   (global-set-key (kbd "TAB") #'company-indent-or-complete-common)
@@ -306,8 +294,30 @@ We need to define were the base folder for all the org files is:
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
 #+END_SRC
 
-* Clojure
+* LSP
+#+BEGIN_SRC emacs-lisp :results value silent
+  (use-package lsp-mode :ensure t)
+  ;; in case you are using client which is available as part of lsp refer to the
+  ;; table bellow for the clients that are distributed as part of lsp-mode.el
+  (require 'lsp-clients)
+  (add-hook 'programming-mode-hook 'lsp)
 
+  (use-package lsp-ui :ensure t)
+  (setq lsp-ui-sideline-enable nil)
+
+  (add-hook 'lsp-mode-hook 'lsp-ui-mode)
+  (use-package company-lsp
+    :after (company lsp-mode)
+    :config
+    (add-to-list 'company-backends 'company-lsp)
+    :custom
+    (company-lsp-async t)
+    (company-lsp-enable-snippet t))
+
+
+#+END_SRC
+
+* Clojure
 #+BEGIN_SRC emacs-lisp :results value silent
   (require 'ob-clojure)
   (use-package slime :ensure t :defer t)
@@ -378,8 +388,7 @@ Choose between elpy or anaconda-mode
   (add-hook 'python-mode-hook 'flycheck-mode)
   (dmanchon/elpy-config)
 
-  (add-hook 'python-mode-hook 'flycheck-mode)
-
+  (add-hook 'python-mode-hook #'lsp)
   (defun dmanchon/elpy-occur-definitions ()
     (interactive)
     (let ((list-matching-lines-face nil))
@@ -396,12 +405,12 @@ Choose between elpy or anaconda-mode
 * Golang
 #+BEGIN_SRC emacs-lisp :results value silent
   (use-package go-projectile :defer t :ensure t)
-  (use-package company-go :defer t :ensure t)
   (use-package go-mode :defer t :ensure t)
+  (use-package company-go :defer t :ensure t)
 
   (add-hook 'go-mode-hook 'flycheck-mode)
-  (add-hook 'go-mode-hook #'lsp-go-enable)
   (add-hook 'before-save-hook 'gofmt-before-save)
+  (add-hook 'go-mode-hook #'lsp)
 
   (add-hook 'go-mode-hook (lambda ()
                           (set (make-local-variable 'company-backends) '(company-go))
@@ -425,6 +434,9 @@ Choose between elpy or anaconda-mode
         (load "/home/dmanchon/.opam/system/share/emacs/site-lisp/tuareg-site-file")
       (error (princ (format "Loading package slime-helper: %s" err))))
 
+    (use-package rust-mode :ensure t :defer t)
+    (add-hook 'rust-mode-hook #'lsp)
+
     (use-package dap-mode
       :ensure t
       :after lsp-mode
@@ -441,8 +453,8 @@ Choose between elpy or anaconda-mode
       (add-hook 'java-mode-hook  'company-mode)
       (add-hook 'java-mode-hook  (lambda () (lsp-ui-flycheck-enable t)))
       (add-hook 'java-mode-hook  'lsp-ui-mode))
-  (use-package company-lsp :ensure t)
-  ;(push 'company-lsp company-backends)
+
+
 #+END_SRC
 
 * Git
