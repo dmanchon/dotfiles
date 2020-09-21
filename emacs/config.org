@@ -1,7 +1,23 @@
+* Config params
+#+BEGIN_SRC emacs-lisp :results value silent
+  (setq home-folder "/home/dmanchon")
+  (setq user-full-name "Daniel Manchon"
+        user-mail-address "dmanchon@gmail.com")
+
+#+END_SRC
+
 * Compile file
 #+BEGIN_SRC emacs-lisp :results value silent
-(setq gc-cons-threshold 50000000)
-(setq load-prefer-newer t)
+  (defun my-minibuffer-setup-hook ()
+    (setq gc-cons-threshold most-positive-fixnum))
+
+  (defun my-minibuffer-exit-hook ()
+    (setq gc-cons-threshold 800000))
+
+  (add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
+  (add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)
+  (add-hook 'focus-out-hook 'garbage-collect)
+  (setq load-prefer-newer t)
 #+END_SRC
 
 * Package managment
@@ -86,7 +102,6 @@
 
 * Paths
 #+BEGIN_SRC emacs-lisp :results value silent
-  (setq home-folder "/home/dmanchon")
   (use-package f :ensure t)
   (setq exec-path-from-shell-arguments '("-l"))
   (use-package exec-path-from-shell :ensure t)
@@ -97,8 +112,8 @@
   (add-to-list 'exec-path (concat home-folder "/go/bin"))
   (add-to-list 'exec-path "/usr/local/go/bin")
   (setq shell-file-name "/bin/zsh")
-  (use-package multi-term :defer t :ensure t)
   (setq multi-term-program "/bin/zsh")
+  (use-package multi-term :defer t :ensure t)
 
   ;; store all backup and autosave files in the tmp dir
   ;;(setq temporary-file-directory (concat default-directory "temp"))
@@ -110,9 +125,6 @@
 
 * PGP and authorization
 #+BEGIN_SRC emacs-lisp :results value silent
-  (setq user-full-name "Daniel Manchon"
-        user-mail-address "dmanchon@gmail.com")
-
   ;; Use only authinfo.gpg for password storage
   (use-package helm-pass)
   (setq auth-sources '(password-store))
@@ -137,16 +149,28 @@
 
 * Theme and fonts
 #+BEGIN_SRC emacs-lisp :results value silent
+
+  (use-package doom-modeline
+    :ensure t)
+  (doom-modeline-init)
+
+  (use-package doom-themes :demand t)
   (use-package fill-column-indicator
     :ensure t :defer t)
+
   (define-globalized-minor-mode global-fci-mode fci-mode (lambda () (fci-mode 1)))
   (global-fci-mode 1)
+  (setq fci-rule-column 120)
+  (setq fci-rule-color "gray")
 
   (tool-bar-mode -1)
 
   (when (window-system)
     (scroll-bar-mode -1))
   (menu-bar-mode t)
+
+  (set-language-environment "UTF-8")
+  (set-default-coding-systems 'utf-8)
 
   (set-face-attribute 'default nil
                       :family "IBM Plex Mono"
@@ -165,7 +189,7 @@
   (add-hook 'minibuffer-setup-hook
             'no-trailing-whitespace)
   (add-hook 'eww-mode-hook
-               'no-trailing-whitespace)
+            'no-trailing-whitespace)
   (add-hook 'ielm-mode-hook
             'no-trailing-whitespace)
   (add-hook 'gdb-mode-hook
@@ -256,6 +280,7 @@ We need to define were the base folder for all the org files is:
     (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
     (projectile-mode +1))
 
+
   (use-package ag)
   (use-package helm-ag :defer t :ensure t)
   (use-package helm-projectile :defer t :ensure t
@@ -296,17 +321,20 @@ We need to define were the base folder for all the org files is:
 
 * LSP
 #+BEGIN_SRC emacs-lisp :results value silent
-  (use-package lsp-mode :ensure t)
+  (use-package lsp-mode :ensure t :defer t)
   ;; in case you are using client which is available as part of lsp refer to the
   ;; table bellow for the clients that are distributed as part of lsp-mode.el
-  (require 'lsp-clients)
+  ;;(require 'lsp-clients)
   (add-hook 'programming-mode-hook 'lsp)
-
+  (setq lsp-prefer-capf t)
+  (setq read-process-output-max (* 1024 1024 20)) ;; 20mb
   (use-package lsp-ui :ensure t)
   (setq lsp-ui-sideline-enable nil)
-
-  (add-hook 'lsp-mode-hook 'lsp-ui-mode)
+  (setq lsp-ui-doc-enable nil)
+  ;(add-hook 'lsp-mode-hook 'lsp-ui-mode)
   (use-package company-lsp
+    :ensure t
+    :defer t
     :after (company lsp-mode)
     :config
     (add-to-list 'company-backends 'company-lsp)
@@ -314,6 +342,8 @@ We need to define were the base folder for all the org files is:
     (company-lsp-async t)
     (company-lsp-enable-snippet t))
 
+  (setq company-minimum-prefix-length 1
+        company-idle-delay 0.0) ;; default is 0.2
 
 #+END_SRC
 
@@ -348,22 +378,10 @@ We need to define were the base folder for all the org files is:
 * Python
 Choose between elpy or anaconda-mode
 #+BEGIN_SRC emacs-lisp :results value silent
+  (use-package yasnippet :defer t :ensure t :init (yas-reload-all))
+  (use-package yasnippet-snippets :defer t :ensure t)
   (use-package pyvenv)
   (pyvenv-mode)
-  (use-package f)
-  (defun ssbb-pyenv-hook ()
-    "Automatically activates pyenv version if .python-version file exists."
-    (f-traverse-upwards
-     (lambda (path)
-       (let ((pyenv-version-path (f-expand ".python-version" path)))
-         (if (f-exists? pyenv-version-path)
-             (pyvenv-mode (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
-
-  (add-hook 'find-file-hook 'ssbb-pyenv-hook)
-  (add-to-list 'exec-path "~/.pyenv/shims")
-  (setq python-check-command (expand-file-name "~/.pyenv/shims/flake8"))
-  (setq python-check-command "flake8")
-  (use-package realgud :defer t)
 
   ;; cleanup whitespace on save.  This is run as a before-save-hook
   ;; because it would throw flake8 errors on after-save-hook
@@ -371,8 +389,11 @@ Choose between elpy or anaconda-mode
 
   ;; elpy
   (defun dmanchon/elpy-config ()
-    (use-package elpy :defer t :ensure t)
-    (elpy-enable)
+    (use-package elpy
+      :ensure t
+      :defer t
+      :init
+      (elpy-enable))
     (setq elpy-rpc-backend "jedi"))
 
   ;; anaconda
@@ -384,12 +405,16 @@ Choose between elpy or anaconda-mode
     (eval-after-load "company"
       '(add-to-list 'company-backends 'company-anaconda)))
 
-  ;;(dmanchon/anaconda-config)
   (add-hook 'python-mode-hook 'flycheck-mode)
-  (dmanchon/elpy-config)
+  (add-hook 'python-mode-hook #'yas-minor-mode)
+  (define-key lsp-mode-map (kbd "M-n") 'lsp-find-references)
 
-  (add-hook 'python-mode-hook #'lsp)
-  (defun dmanchon/elpy-occur-definitions ()
+  (dmanchon/elpy-config)
+  ;;(dmanchon/anaconda-config)
+
+  ;;(add-hook 'python-mode-hook #'lsp)
+  (use-package eglot :ensure t)
+  (defun dmanchon/python-occur-definitions ()
     (interactive)
     (let ((list-matching-lines-face nil))
       (occur "^ *\\(async def\\|def\\|class\\) "))
@@ -397,8 +422,9 @@ Choose between elpy or anaconda-mode
       (if window
           (select-window window)
         (switch-to-buffer "*Occur*"))))
+  (define-key lsp-mode-map (kbd "C-c C-o") 'dmanchon/python-occur-definitions)
+  (define-key eglot-mode-map (kbd "C-c C-o") 'dmanchon/python-occur-definitions)
 
-  (define-key elpy-mode-map (kbd "C-c C-o") 'dmanchon/elpy-occur-definitions)
 
 #+END_SRC
 
@@ -417,42 +443,58 @@ Choose between elpy or anaconda-mode
                           (company-mode)))
 #+END_SRC
 
+* Ocaml
+#+BEGIN_SRC emacs-lisp :results value silent
+  (use-package merlin :defer t :ensure t)
+  (setq merlin-command 'opam)  ; needed only if ocamlmerlin not already in your PATH
+  (autoload 'merlin-mode "merlin" "Merlin mode" t)
+  (add-hook 'tuareg-mode-hook 'merlin-mode)
+  (add-hook 'caml-mode-hook 'merlin-mode)
+  (condition-case err
+      (load (concat home-folder "/.opam/4.08.1/share/emacs/site-lisp/tuareg-site-file"))
+    (error (princ (format "Loading package slime-helper: %s" err))))
+  (setq utop-command "opam config exec -- utop -emacs")
+  (use-package reason-mode :defer t :ensure t)
+  ;;(use-package rjsx-mode :defer t :ensure t)
+  (use-package dune :defer t :ensure t)
+  (add-hook 'reason-mode-hook (lambda ()
+                                (setq merlin-command (concat home-folder "/.nvm/versions/node/v8.9.4/bin/ocamlmerlin"))
+                                (setq refmt-command (concat home-folder "/.nvm/versions/node/v8.9.4/bin/refmt"))
+                                (add-hook 'before-save-hook 'refmt-before-save)
+                                (merlin-mode)))
+
+  (setq merlin-ac-setup t)
+
+#+END_SRC
 * Other programming languages
 #+BEGIN_SRC emacs-lisp :results value silent
-    (use-package groovy-mode :defer t :ensure t)
-    (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
-    (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
-    (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
-    (use-package protobuf-mode :defer t :ensure t)
+  (use-package haskell-mode :defer t :ensure t)
+  (use-package graphql-mode :defer t :ensure t)
+  (use-package groovy-mode :defer t :ensure t)
+  (add-to-list 'auto-mode-alist '("\\Jenkinsfile\\'" . groovy-mode))
+  (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
+  (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
+  (use-package protobuf-mode :defer t :ensure t)
 
-    (use-package merlin :defer t :ensure t)
-    (setq merlin-command 'opam)  ; needed only if ocamlmerlin not already in your PATH
-    (autoload 'merlin-mode "merlin" "Merlin mode" t)
-    (add-hook 'tuareg-mode-hook 'merlin-mode)
-    (add-hook 'caml-mode-hook 'merlin-mode)
-    (condition-case err
-        (load "/home/dmanchon/.opam/system/share/emacs/site-lisp/tuareg-site-file")
-      (error (princ (format "Loading package slime-helper: %s" err))))
+  (use-package rust-mode :ensure t :defer t)
+  (add-hook 'rust-mode-hook #'lsp)
 
-    (use-package rust-mode :ensure t :defer t)
-    (add-hook 'rust-mode-hook #'lsp)
-
-    (use-package dap-mode
-      :ensure t
-      :after lsp-mode
-      :config
-      (dap-mode t)
-      (dap-ui-mode t))
-    (require 'dap-java)
-    (use-package lsp-java
-      :ensure t
-      :requires (lsp-ui-flycheck lsp-ui-sideline)
-      :config
-      (add-hook 'java-mode-hook  'lsp-java-enable)
-      (add-hook 'java-mode-hook  'flycheck-mode)
-      (add-hook 'java-mode-hook  'company-mode)
-      (add-hook 'java-mode-hook  (lambda () (lsp-ui-flycheck-enable t)))
-      (add-hook 'java-mode-hook  'lsp-ui-mode))
+  (use-package dap-mode
+    :ensure t
+    :after lsp-mode
+    :config
+    (dap-mode t)
+    (dap-ui-mode t))
+  (require 'dap-java)
+  (use-package lsp-java
+    :ensure t
+    :requires (lsp-ui-flycheck lsp-ui-sideline)
+    :config
+    (add-hook 'java-mode-hook  'lsp-java-enable)
+    (add-hook 'java-mode-hook  'flycheck-mode)
+    (add-hook 'java-mode-hook  'company-mode)
+    (add-hook 'java-mode-hook  (lambda () (lsp-ui-flycheck-enable t)))
+    (add-hook 'java-mode-hook  'lsp-ui-mode))
 
 
 #+END_SRC
@@ -460,6 +502,7 @@ Choose between elpy or anaconda-mode
 * Git
 #+BEGIN_SRC emacs-lisp :results value silent
 (use-package magit :ensure t :defer t)
+(use-package forge :ensure t :defer t)
 (setq magit-refresh-status-buffer nil)
 (global-set-key (kbd "C-x g") 'magit-status)
 (global-set-key [f2] 'magit-status)
@@ -467,89 +510,91 @@ Choose between elpy or anaconda-mode
 
 * Ivy
 #+BEGIN_SRC emacs-lisp :results value silent
-    (use-package ace-window :ensure t :defer t
-        :bind* (("C-x o" . ace-window)))
+  (use-package ace-window :ensure t :defer t
+    :bind* (("C-x w" . ace-window)))
 
-    (use-package ivy :ensure t :defer t
-      :diminish ivy-mode
-      :init (setq projectile-completion-system 'ivy)
-      :bind
-      (:map ivy-mode-map ("C-'" . ivy-avy))
-      :config
-      (ivy-mode 1)
-      (setq ivy-use-virtual-buffers t)
-      (setq ivy-height 10)
-      (setq ivy-initial-inputs-alist nil)
-      (setq ivy-count-format "%d/%d ")
-      (setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
-      (setq ivy-extra-directories '("./")) ; default value: ("../" "./")
-      (setq ivy-wrap t)
-      (setq ivy-re-builders-alist '((swiper . ivy--regex-plus)
-                                    (counsel-ag . ivy--regex-plus)
-                                    (counsel-grep-or-swiper . ivy--regex-plus)
-                                    (t . ivy--regex-plus))))
+  (setq ivy-re-builders-alist '((swiper . ivy--regex-ignore-order)
+                                (counsel-ag . ivy--regex-ignore-order)
+                                (counsel-M-x . ivy--regex-ignore-order)
+                                (counsel-grep-or-swiper . ivy--regex-ignore-order)
+                                (t . ivy--regex-ignore-order)))
+  (use-package ivy :ensure t :defer t
+    :diminish ivy-mode
+    :init (setq projectile-completion-system 'ivy)
+    :bind
+    (:map ivy-mode-map ("C-'" . ivy-avy))
+    :config
+    (ivy-mode 1)
+    (setq ivy-use-virtual-buffers t)
+    (setq ivy-height 10)
+    (setq ivy-initial-inputs-alist nil)
+    (setq ivy-count-format "%d/%d ")
+    (setq ivy-virtual-abbreviate 'full) ; Show the full virtual file paths
+    (setq ivy-extra-directories '("./")) ; default value: ("../" "./")
+    (setq ivy-wrap t))
 
-    (use-package counsel :ensure t :defer t
-      :bind*
-      (("M-x" . counsel-M-x)
-       ("C-s" . swiper)
-       ("C-c d d" . counsel-descbinds)
-       ("C-c s a" . counsel-osx-app)
-       ("C-c p a" . helm-projectile-ag)
-       ("C-x C-f" . counsel-find-file)
-       ("C-x r" . counsel-recentf)
-       ("C-c g g" . counsel-git)
-       ("C-c g G" . counsel-git-grep)
-       ("C-x l" . counsel-locate)
-       ("C-c g s" . counsel-grep-or-swiper)
-       ("M-y" . counsel-yank-pop)
-       ("C-c C-r" . ivy-resume)
-       ("C-c i m" . counsel-imenu)
-       ("C-c d s" . describe-symbol)
-       :map ivy-minibuffer-map
-       ("M-y" . ivy-next-line-and-call))
-      :config
-      (define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
-      (define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
-      (defun reloading (cmd)
-        (lambda (x)
-          (funcall cmd x)
-          (ivy--reset-state ivy-last)))
-      (defun given-file (cmd prompt) ; needs lexical-binding
-        (lambda (source)
-          (let ((target
-                 (let ((enable-recursive-minibuffers t))
-                   (read-file-name
-                    (format "%s %s to:" prompt source)))))
-            (funcall cmd source target 1))))
-      (defun confirm-delete-file (x)
-        (dired-delete-file x 'confirm-each-subdirectory))
+  (use-package counsel :ensure t :defer t
+    :bind*
+    (("M-x" . counsel-M-x)
+     ("C-s" . swiper)
+     ("C-c d d" . counsel-descbinds)
+     ("C-c s a" . counsel-osx-app)
+     ("C-c p a" . helm-projectile-ag)
+     ("C-x C-f" . counsel-find-file)
+     ("C-x r" . counsel-recentf)
+     ("C-c g g" . counsel-git)
+     ("C-c g G" . counsel-git-grep)
+     ("C-x l" . counsel-locate)
+     ("C-c g s" . counsel-grep-or-swiper)
+     ("M-y" . counsel-yank-pop)
+     ("C-c C-r" . ivy-resume)
+     ("C-c i m" . counsel-imenu)
+     ("C-c d s" . describe-symbol)
+     :map ivy-minibuffer-map
+     ("M-y" . ivy-next-line-and-call))
+    :config
+    (define-key ivy-minibuffer-map (kbd "<left>") 'counsel-up-directory)
+    (define-key ivy-minibuffer-map (kbd "<right>") 'ivy-alt-done)
+    (defun reloading (cmd)
+      (lambda (x)
+        (funcall cmd x)
+        (ivy--reset-state ivy-last)))
+    (defun given-file (cmd prompt) ; needs lexical-binding
+      (lambda (source)
+        (let ((target
+               (let ((enable-recursive-minibuffers t))
+                 (read-file-name
+                  (format "%s %s to:" prompt source)))))
+          (funcall cmd source target 1))))
+    (defun confirm-delete-file (x)
+      (dired-delete-file x 'confirm-each-subdirectory))
 
-      (ivy-add-actions
-       'counsel-find-file
-       `(("c" ,(given-file #'copy-file "Copy") "copy")
-         ("d" ,(reloading #'confirm-delete-file) "delete")
-         ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
-      (ivy-add-actions
-       'helm-projectile-find-file
-       `(("c" ,(given-file #'copy-file "Copy") "copy")
-         ("d" ,(reloading #'confirm-delete-file) "delete")
-         ("m" ,(reloading (given-file #'rename-file "Move")) "move")
-         ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
+    (ivy-add-actions
+     'counsel-find-file
+     `(("c" ,(given-file #'copy-file "Copy") "copy")
+       ("d" ,(reloading #'confirm-delete-file) "delete")
+       ("m" ,(reloading (given-file #'rename-file "Move")) "move")))
+    (ivy-add-actions
+     'helm-projectile-find-file
+     `(("c" ,(given-file #'copy-file "Copy") "copy")
+       ("d" ,(reloading #'confirm-delete-file) "delete")
+       ("m" ,(reloading (given-file #'rename-file "Move")) "move")
+       ("b" counsel-find-file-cd-bookmark-action "cd bookmark")))
 
-      (setq counsel-find-file-at-point t)
-      ;; ignore . files or temporary files
-      (setq counsel-find-file-ignore-regexp
-            (concat
-             ;; File names beginning with # or .
-             "\\(?:q
-        \\`[#.]\\)"
-             ;; File names ending with # or ~
-             "\\|\\(?:\\`.+?[#~]\\'\\)")))
+    (setq counsel-find-file-at-point t)
+    ;; ignore . files or temporary files
+    (setq counsel-find-file-ignore-regexp
+          (concat
+           ;; File names beginning with # or .
+           "\\(?:q
+         \\`[#.]\\)"
+           ;; File names ending with # or ~
+           "\\|\\(?:\\`.+?[#~]\\'\\)")))
 
-    (setq ivy-display-style 'fancy)
-    (use-package ivy-hydra :defer t :ensure t)
-    (use-package counsel-osx-app :defer t :ensure t)
+  (setq ivy-display-style 'fancy)
+  (use-package ivy-hydra :defer t :ensure t)
+  (use-package counsel-osx-app :defer t :ensure t)
+
 #+END_SRC
 
 * Navigation
@@ -629,4 +674,32 @@ Choose between elpy or anaconda-mode
 * Services
 #+BEGIN_SRC emacs-lisp :results value silent
 (use-package prodigy :defer t :ensure t)
+(use-package restclient :defer t :ensure t)
+#+END_SRC
+* TBA
+#+BEGIN_SRC emacs-lisp :results value silent
+  (use-package f)
+  (defun ssbb-pyenv-hook ()
+    "Automatically activates pyenv version if .python-version file exists."
+    (f-traverse-upwards
+     (lambda (path)
+       (let ((pyenv-version-path (f-expand ".python-version" path)))
+         (if (f-exists? pyenv-version-path)
+             (pyvenv-activate (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
+
+  ;(add-hook 'find-file-hook 'ssbb-pyenv-hook)
+
+  (defun pyvenv-autoload ()
+    "Automatically activates pyvenv version if .venv directory exists."
+    (f-traverse-upwards
+     (lambda (path)
+       (let ((venv-path (f-expand ".venv" path)))
+         (if (f-exists? venv-path)
+             (progn
+               (pyvenv-workon venv-path))
+               t)))))
+
+  ;(add-hook 'python-mode-hook 'pyvenv-autoload)
+  (add-to-list 'exec-path "~/.pyenv/shims")
+  (setq python-check-command (expand-file-name "~/.pyenv/shims/flake8"))
 #+END_SRC
